@@ -55,9 +55,9 @@ export default function NavBarItem({ item, ...props }: Props) {
         }`}
         onClick={handleMenuClick}
       >
-        {item.isCurrentUser && (
+        {/* {item.isCurrentUser && (
           <UserAvatarCurrentUser className="w-6 h-6 mr-3 inline-flex" />
-        )}
+        )} */}
         {item.icon && <Icon path={item.icon} className="transition-colors" />}
         <span
           className={`px-2 transition-colors ${
@@ -66,14 +66,14 @@ export default function NavBarItem({ item, ...props }: Props) {
         >
           {itemLabel}
         </span>
-        {item.menu && (
+        {/* {item.menu && (
           <Icon
             path={isDropdownActive ? mdiChevronUp : mdiChevronDown}
             className="hidden lg:inline-flex transition-colors"
           />
-        )}
+        )} */}
       </div>
-      {item.menu && (
+      {/* {item.menu && (
         <div
           className={`${
             !isDropdownActive ? "lg:hidden" : ""
@@ -84,7 +84,7 @@ export default function NavBarItem({ item, ...props }: Props) {
             onRouteChange={props.onRouteChange}
           />
         </div>
-      )}
+      )} */}
     </>
   );
 

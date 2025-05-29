@@ -8,11 +8,11 @@ export function OnVisit() {
   const darkMode = useAppSelector((state) => state.darkMode.isEnabled);
   const dispatch = useAppDispatch();
 
-  useEffect(() => {
-    if (darkMode) {
-      dispatch(setDarkMode(false));
-    }
-  });
+  // useEffect(() => {
+  //   if (darkMode) {
+  //     dispatch(setDarkMode(false));
+  //   }
+  // });
 
-  return "...";
+  return null;
 }
