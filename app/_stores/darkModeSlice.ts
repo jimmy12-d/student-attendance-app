@@ -4,6 +4,16 @@ interface DarkModeState {
   isEnabled: boolean;
 }
 
+// Place this function at the top
+const getInitialDarkMode = (): boolean => {
+  if (typeof window !== "undefined") {
+    const stored = localStorage.getItem('darkMode');
+    if (stored !== null) return stored === '1';
+  }
+  return true; // default to dark
+};
+
+// Use the function here
 const initialState: DarkModeState = {
   isEnabled: true,
 };
@@ -29,7 +39,7 @@ export const styleSlice = createSlice({
 
       // You can persist dark mode setting
       // if (typeof localStorage !== 'undefined') {
-      //   localStorage.setItem('darkMode', state.darkMode ? '1' : '0')
+      //   localStorage.setItem('darkMode', state.isEnabled ? '1' : '0')
       // }
     },
   },

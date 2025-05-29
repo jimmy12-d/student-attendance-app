@@ -10,6 +10,7 @@ import {
   mdiTelevisionGuide,
   mdiResponsive,
   mdiPalette,
+  mdiClipboardListOutline
 } from "@mdi/js";
 import { MenuAsideItem } from "../../_interfaces";
 
@@ -28,6 +29,11 @@ const menuAside: MenuAsideItem[] = [
     href: "/dashboard/students",
     icon: mdiAccountCircle,
     label: "Student",
+  },
+  {
+    href: "/dashboard/record", // Path to your new page
+    label: "Attendance",
+    icon: mdiClipboardListOutline, // Choose an appropriate icon
   },
   {
     href: "/dashboard/tables",

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "../css/main.css";
 import StoreProvider from "./_stores/StoreProvider";
 import Script from "next/script";
+import DarkModeInit from "./_components/DarkModeInit";
 
 const title = `Admin One React Tailwind free`;
 
@@ -48,7 +49,7 @@ export default function RootLayout({
 }>) {
   return (
     <StoreProvider>
-      <html lang="en" className="style-basic">
+      <html lang="en" className="style-basic dark">
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=UA-130795909-1"
           strategy="afterInteractive"
@@ -65,6 +66,7 @@ export default function RootLayout({
         <body
           className={`bg-gray-50 dark:bg-slate-800 dark:text-slate-100 antialiased`}
         >
+          <DarkModeInit />
           {children}
         </body>
       </html>

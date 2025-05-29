@@ -84,7 +84,7 @@ const TableStudents = ({ students, onEdit, onDelete }: Props) => {
     <>
       {/* Modal for Viewing QR Code */}
       <CardBoxModal
-        title={`QR Code for ${selectedStudentForQr?.fullName || "Student"}`}
+        title={`Stduent's QR`}
         buttonColor="info"
         buttonLabel="Done"
         isActive={isQrModalActive}
