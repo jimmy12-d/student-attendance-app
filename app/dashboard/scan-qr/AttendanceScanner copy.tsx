@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { Html5Qrcode, Html5QrcodeCameraScanConfig } from 'html5-qrcode';
+import { Html5Qrcode, Html5QrcodeCameraScanConfig } from 'html5-qrcode'; // Html5QrcodeResult removed from import if not used
 import { db } from '../../../firebase-config';
 import { collection, addDoc, query, where, getDocs, serverTimestamp, doc, getDoc, Timestamp } from 'firebase/firestore';
 import { Student } from '../../_interfaces';
@@ -14,52 +14,49 @@ const FEEDBACK_DISPLAY_MS = 3000;
 const AttendanceScanner: React.FC = () => {
   const [scannedStudentInfo, setScannedStudentInfo] = useState<string | null>(null);
   const [feedbackMessage, setFeedbackMessage] = useState<{ type: 'success' | 'error' | 'info', text: string } | null>(null);
-  const [isScanning, setIsScanning] = useState(false); // This is the primary state controlling the scanner
+  const [isScanning, setIsScanning] = useState(false);
 
-  const html5QrCodeRef = useRef<Html5Qrcode | null>(null); // Holds the Html5Qrcode instance
+  const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
   const lastScannedIdCooldownRef = useRef<string | null>(null);
   const cooldownTimerIdRef = useRef<NodeJS.Timeout | null>(null);
   const feedbackTimerIdRef = useRef<NodeJS.Timeout | null>(null);
   const successSoundRef = useRef<HTMLAudioElement | null>(null);
-  const videoContainerRef = useRef<HTMLDivElement>(null); // Ref for the video container
+  const videoContainerRef = useRef<HTMLDivElement>(null);
 
-  // Initialize Audio - runs once on mount
   useEffect(() => {
     if (typeof Audio !== "undefined") {
       try {
         const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
-        const soundFilePath = `${basePath}/success_sound_2.mp3`;
+        const soundFilePath = `${basePath}/success_sound_2.mp3`; // Ensure this is in /public
         successSoundRef.current = new Audio(soundFilePath);
-        console.log("Audio initialized with src:", soundFilePath);
       } catch (e) { console.warn("Could not initialize audio:", e); }
     }
   }, []);
 
-  // Cleanup general timers on unmount
-  useEffect(() => {
+  useEffect(() => { // Separate useEffect for timer cleanups on unmount
     return () => {
       if (feedbackTimerIdRef.current) clearTimeout(feedbackTimerIdRef.current);
       if (cooldownTimerIdRef.current) clearTimeout(cooldownTimerIdRef.current);
     };
   }, []);
 
-  const playSuccessSound = useCallback(() => { /* ... Your existing correct logic ... */
+  const playSuccessSound = useCallback(() => { /* ... your existing correct logic ... */ 
     if (successSoundRef.current) {
-        successSoundRef.current.currentTime = 0;
-        successSoundRef.current.play().catch(error => console.warn("Error playing sound:", error));
+      successSoundRef.current.currentTime = 0;
+      successSoundRef.current.play().catch(error => console.warn("Error playing sound:", error));
     }
   }, []);
 
-  const showFeedback = useCallback((type: 'success' | 'error' | 'info', text: string) => { /* ... Your existing correct logic ... */
+  const showFeedback = useCallback((type: 'success' | 'error' | 'info', text: string) => { /* ... your existing correct logic ... */ 
     setFeedbackMessage({ type, text });
     if (feedbackTimerIdRef.current) clearTimeout(feedbackTimerIdRef.current);
     feedbackTimerIdRef.current = setTimeout(() => {
-        setFeedbackMessage(null);
-        setScannedStudentInfo(null);
+      setFeedbackMessage(null);
+      setScannedStudentInfo(null);
     }, FEEDBACK_DISPLAY_MS);
   }, []);
 
-  const onScanSuccess = useCallback(async (decodedText: string /*, result: any */) => { /* ... Your existing onScanSuccess logic ... */
+  const onScanSuccess = useCallback(async (decodedText: string /*, result: any */) => { /* ... your existing correct logic ... */ 
     if (lastScannedIdCooldownRef.current === decodedText) return;
     lastScannedIdCooldownRef.current = decodedText;
     if (cooldownTimerIdRef.current) clearTimeout(cooldownTimerIdRef.current);
@@ -110,129 +107,124 @@ const AttendanceScanner: React.FC = () => {
 
   const onScanFailure = useCallback((errorMessage: string) => { /* ... (console.warn if needed) ... */ }, []);
 
-
-  // useEffect to manage the scanner lifecycle based on `isScanning` state
+  // Effect to Start and Stop the scanner based on `isScanning`
   useEffect(() => {
-    // Start scanner when isScanning becomes true
     if (isScanning) {
-      if (html5QrCodeRef.current) {
-        // If an instance somehow still exists, try to clear it first
-        // This case should ideally not be hit if cleanup is working.
-        console.warn("Scanner instance already exists while trying to start. Attempting to clear old one.");
-        html5QrCodeRef.current.clear()
-          .catch(err => console.warn("Error clearing pre-existing scanner before start:", err))
-          .finally(() => {
-            html5QrCodeRef.current = null; // Ensure it's null before creating new
-            initializeScanner(); // Then try to initialize
+      // Only attempt to start if no instance currently exists in the ref
+      if (!html5QrCodeRef.current && videoContainerRef.current) {
+        console.log("useEffect[isScanning]: Attempting to start scanner.");
+        const newHtml5QrCodeInstance = new Html5Qrcode(VIDEO_ELEMENT_CONTAINER_ID, { verbose: false });
+        html5QrCodeRef.current = newHtml5QrCodeInstance; // Store instance immediately
+
+        const qrCodeScanConfiguration: Html5QrcodeCameraScanConfig = {
+          fps: 10,
+          qrbox: (viewfinderWidth, viewfinderHeight) => {
+            const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+            return { width: Math.floor(minEdge * 0.8), height: Math.floor(minEdge * 0.8) };
+          },
+        };
+
+        Html5Qrcode.getCameras()
+          .then(cameras => {
+            if (cameras && cameras.length) {
+              let cameraId = cameras[0].id;
+              const backCamera = cameras.find(camera => camera.label && camera.label.toLowerCase().includes('back'));
+              if (backCamera) cameraId = backCamera.id;
+              
+              // Check if the instance in the ref is still the one we just created
+              // This guards against rapid toggles of isScanning
+              if (html5QrCodeRef.current === newHtml5QrCodeInstance) {
+                newHtml5QrCodeInstance.start(cameraId, qrCodeScanConfiguration, onScanSuccess, onScanFailure)
+                  .then(() => {
+                    console.log("Scanner started successfully.");
+                  })
+                  .catch(err => {
+                    console.error("Error starting scanner camera:", err);
+                    showFeedback('error', `Camera start error: ${(err as Error).message}`);
+                    setIsScanning(false); // Revert scanning state
+                    html5QrCodeRef.current = null; // Clear ref on error
+                  });
+              }
+            } else {
+              showFeedback('error', 'No cameras found.');
+              setIsScanning(false);
+              html5QrCodeRef.current = null;
+            }
+          })
+          .catch(err => {
+            console.error("Error getting cameras:", err);
+            showFeedback('error', `Error getting cameras: ${(err as Error).message}`);
+            setIsScanning(false);
+            html5QrCodeRef.current = null;
           });
-      } else {
-        initializeScanner();
       }
-    }
-
-    // Cleanup function for this effect:
-    // This will run when `isScanning` changes from true to false,
-    // OR when the component unmounts if `isScanning` was true.
-    return () => {
+    } else {
+      // isScanning is false, so stop the current scanner instance if it exists
       if (html5QrCodeRef.current) {
-        console.log("useEffect[isScanning] cleanup: Stopping and clearing scanner.");
-        const scannerToStop = html5QrCodeRef.current;
-        html5QrCodeRef.current = null; // Nullify ref immediately to prevent race conditions
+        console.log("useEffect[isScanning]: Attempting to stop scanner.");
+        const currentScanner = html5QrCodeRef.current; // Capture ref before async operation
+        html5QrCodeRef.current = null; // Optimistically nullify to prevent re-entry or race conditions
 
-        scannerToStop.stop()
+        currentScanner.stop()
           .then(() => {
-            console.log("Scanner stopped successfully by useEffect cleanup.");
-            // The library's stop() should release the camera.
-            // Clearing innerHTML of the container might still be needed if stop() doesn't remove all UI.
-            if (videoContainerRef.current) {
+            console.log("Scanner stopped successfully via useEffect.");
+            if (videoContainerRef.current) { // Ensure container exists before manipulating
               videoContainerRef.current.innerHTML = '';
             }
           })
           .catch(err => {
-            console.warn("Error stopping scanner in useEffect cleanup:", err);
-            // Even if stop fails, try to clear the container and nullify ref
+            console.warn("Error stopping scanner (isScanning became false):", err);
             if (videoContainerRef.current) {
-              videoContainerRef.current.innerHTML = '';
+              videoContainerRef.current.innerHTML = ''; // Still try to clear UI
             }
           });
       }
-    };
-  }, [isScanning, onScanSuccess, onScanFailure, showFeedback]); // Dependencies for re-initializing if callbacks change
-
-
-  const initializeScanner = async () => {
-    if (!videoContainerRef.current) {
-      showFeedback('error', 'Video container element not found in DOM.');
-      setIsScanning(false); // Can't scan
-      return;
     }
-    // Ensure container is empty before Html5Qrcode tries to add its video element
-    videoContainerRef.current.innerHTML = '';
 
-    const newScanner = new Html5Qrcode(VIDEO_ELEMENT_CONTAINER_ID, { verbose: false });
-    html5QrCodeRef.current = newScanner; // Set ref immediately
-
-    const config: Html5QrcodeCameraScanConfig = {
-      fps: 10,
-      qrbox: (vfW, vfH) => ({ width: Math.floor(Math.min(vfW, vfH) * 0.7), height: Math.floor(Math.min(vfW, vfH) * 0.7) }),
+    // This cleanup is for when the COMPONENT UNMOUNTS or if dependencies change,
+    // which primarily should be `isScanning` here.
+    return () => {
+      // If an instance was created by THIS effect run and isScanning is true (meaning we are unmounting mid-scan)
+      // or if the main ref still holds an instance when component unmounts.
+      if (html5QrCodeRef.current && html5QrCodeRef.current.isScanning) {
+        console.log("useEffect[isScanning] FULL UNMOUNT cleanup: Stopping scanner.");
+        html5QrCodeRef.current.stop()
+          .catch(err => console.warn("Error stopping scanner on full unmount/dep change:", err))
+          .finally(() => {
+            html5QrCodeRef.current = null;
+          });
+      }
     };
-
-    try {
-      const cameras = await Html5Qrcode.getCameras();
-      if (cameras && cameras.length) {
-        let cameraId = cameras[0].id;
-        const backCamera = cameras.find(c => c.label.toLowerCase().includes('back'));
-        if (backCamera) cameraId = backCamera.id;
-
-        // Check if html5QrCodeRef.current is still this newScanner instance
-        // (guards against stop being called during async getCameras)
-        if (html5QrCodeRef.current === newScanner) {
-          await newScanner.start(cameraId, config, onScanSuccess, onScanFailure);
-          console.log("Scanner started successfully.");
-          // isScanning is already true, no need to set it again here.
-        } else {
-          console.log("Scanner instance was changed/stopped before camera could start.");
-        }
-      } else {
-        showFeedback('error', 'No cameras found.');
-        setIsScanning(false);
-        html5QrCodeRef.current = null;
-      }
-    } catch (err) {
-      console.error("Error during scanner initialization or start:", err);
-      showFeedback('error', `Camera Error: ${(err as Error).message}`);
-      setIsScanning(false);
-      if (html5QrCodeRef.current === newScanner) { // Only nullify if it's still our instance
-        html5QrCodeRef.current = null;
-      }
-    }
-  };
+  // The callbacks onScanSuccess, onScanFailure, showFeedback are memoized,
+  // so they are stable if their own dependencies are stable.
+  // Including them ensures that if they *do* change for a valid reason,
+  // the scanner is re-initialized with the new versions.
+  }, [isScanning, onScanSuccess, onScanFailure, showFeedback]);
 
   const handleStartScan = () => {
     if (!isScanning) {
       setFeedbackMessage(null);
       setScannedStudentInfo(null);
-      setIsScanning(true); // This triggers the useEffect to initialize the scanner
+      setIsScanning(true); // This will trigger the useEffect
     }
   };
 
   const handleStopScan = () => {
-    // This will trigger the cleanup within the useEffect when `isScanning` becomes false
-    // The useEffect will then call scanner.stop()
-    setIsScanning(false);
+    if (isScanning) {
+      setIsScanning(false); // This will trigger the useEffect's "else" block and then its cleanup
+    }
   };
 
   return (
     <CardBox className="mx-auto max-w-xl">
-      <h2 className="text-2xl md:text-3xl font-bold mb-6 text-center text-white-800">
-        Scan Student QR 2
+      <h2 className="text-2xl md:text-3xl font-bold mb-6 text-center text-white-800"> {/* Changed white-800 to gray-800 */}
+        Scan Student QR
       </h2>
-      {/* The video container's content is managed by Html5Qrcode OR the placeholder */}
       <div ref={videoContainerRef} id={VIDEO_ELEMENT_CONTAINER_ID}
         className="w-full rounded-md overflow-hidden mb-4 border-2 border-gray-300 bg-gray-900"
         style={{ minHeight: '280px', width: '100%' }}
       >
-        {(!isScanning && !html5QrCodeRef.current) && ( // Show placeholder only if not scanning AND no lingering instance
+        {!isScanning && (
           <div className="flex items-center justify-center h-full">
             <p className="text-gray-400 text-center p-10">Camera feed will appear here.</p>
           </div>
@@ -247,6 +239,7 @@ const AttendanceScanner: React.FC = () => {
         </button>
       </div>
 
+      {/* Feedback messages */}
       {scannedStudentInfo && !feedbackMessage && (
         <div className="text-center p-3 mb-4 bg-blue-50 border border-blue-200 rounded-md">
             <p className="text-lg font-medium text-blue-700 animate-pulse">

@@ -35,6 +35,11 @@ const menuAside: MenuAsideItem[] = [
     label: "Attendance",
     icon: mdiClipboardListOutline, // Choose an appropriate icon
   },
+    {
+    href: "/dashboard/check", // Path to your new page
+    label: "Check",
+    icon: mdiClipboardListOutline, // Choose an appropriate icon
+  },
   {
     href: "/dashboard/tables",
     label: "Tables",
