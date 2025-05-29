@@ -13,6 +13,7 @@ type Props = {
   outline?: boolean;
   children: ReactNode;
   button?: ReactNode;
+  className?: string; // <-- Add this line
 };
 
 const NotificationBar = ({ outline = false, children, ...props }: Props) => {

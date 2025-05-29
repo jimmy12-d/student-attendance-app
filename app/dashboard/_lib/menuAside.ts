@@ -10,7 +10,6 @@ import {
   mdiTelevisionGuide,
   mdiResponsive,
   mdiPalette,
-  mdiVuejs,
 } from "@mdi/js";
 import { MenuAsideItem } from "../../_interfaces";
 
@@ -19,6 +18,16 @@ const menuAside: MenuAsideItem[] = [
     href: "/dashboard",
     icon: mdiMonitor,
     label: "Dashboard",
+  },
+  {
+    href: "/dashboard/scan-qr",
+    icon: mdiMonitor,
+    label: "Scan QR",
+  },
+  {
+    href: "/dashboard/students",
+    icon: mdiAccountCircle,
+    label: "Student",
   },
   {
     href: "/dashboard/tables",
@@ -34,11 +43,6 @@ const menuAside: MenuAsideItem[] = [
     href: "/dashboard/ui",
     label: "UI",
     icon: mdiTelevisionGuide,
-  },
-  {
-    href: "/dashboard/responsive",
-    label: "Responsive",
-    icon: mdiResponsive,
   },
   {
     href: "/",
@@ -76,12 +80,6 @@ const menuAside: MenuAsideItem[] = [
     href: "https://github.com/justboil/admin-one-react-tailwind",
     label: "GitHub",
     icon: mdiGithub,
-    target: "_blank",
-  },
-  {
-    href: "https://github.com/justboil/admin-one-vue-tailwind",
-    label: "Vue version",
-    icon: mdiVuejs,
     target: "_blank",
   },
 ];

@@ -31,7 +31,7 @@ const CardBoxModal = ({
   }
 
   const footer = (
-    <Buttons>
+    <Buttons type="justify-end">
       <Button
         label={buttonLabel}
         color={buttonColor}

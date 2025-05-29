@@ -4,8 +4,8 @@ type Props = {
   type?: string;
   mb?: string;
   noWrap?: boolean;
-  classAddon?: string;
-  children: ReactNode;
+  classAddon?: string; // Not used in the provided snippet, but defined
+  children: ReactNode; // <--- THIS IS CORRECT
   className?: string;
 };
 
@@ -13,7 +13,7 @@ const Buttons = ({
   type = "justify-start",
   mb = "-mb-3",
   noWrap = false,
-  children,
+  children,      // <--- CORRECTLY DESTRUCTURED
   className,
 }: Props) => {
   return (
@@ -22,7 +22,7 @@ const Buttons = ({
         noWrap ? "flex-nowrap" : "flex-wrap"
       }`}
     >
-      {children}
+      {children} {/* <--- CORRECTLY RENDERED */}
     </div>
   );
 };

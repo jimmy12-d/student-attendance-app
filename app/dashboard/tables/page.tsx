@@ -35,7 +35,7 @@ export default function TablesPage() {
       </SectionTitleLineWithButton>
 
       <NotificationBar color="info" icon={mdiMonitorCellphone}>
-        <b>Responsive table.</b> Collapses on mobile
+        <b>Responsive table.</b> Collapses on mobile 2222d
       </NotificationBar>
 
       <CardBox className="mb-6" hasTable>

@@ -6,5 +6,5 @@ type Props = {
 };
 
 export default function SectionMain({ children }: Props) {
-  return <section className={`p-6 ${containerMaxW}`}>{children}</section>;
+  return <section className={`bg-gray-100 dark:bg-gray-800 p-6 ${containerMaxW}`}>{children}</section>;
 }

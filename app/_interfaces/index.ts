@@ -1,3 +1,5 @@
+import { Timestamp } from "firebase/firestore"; // Import Timestamp
+
 export type UserPayloadObject = {
   name: string;
   email: string;
@@ -83,3 +85,12 @@ export type UserForm = {
   name: string | null;
   email: string | null;
 };
+
+export interface Student {
+  id: string; // Firestore document ID
+  fullName: string;
+  phone?: string; // Optional, as it wasn't in the display list
+  class: string;
+  shift: string;
+  createdAt?: Timestamp | Date; // Firestore timestamp or Date object
+}

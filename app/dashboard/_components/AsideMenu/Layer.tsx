@@ -5,6 +5,7 @@ import AsideMenuItem from "./Item";
 import AsideMenuList from "./List";
 import { MenuAsideItem } from "../../../_interfaces";
 import { useAppSelector } from "../../../_stores/hooks";
+import RodwellLogo from "../../../_components/JustboilLogo";
 
 type Props = {
   menu: MenuAsideItem[];
@@ -40,10 +41,11 @@ export default function AsideMenuLayer({
         className={`aside lg:rounded-2xl flex-1 flex flex-col overflow-hidden dark:bg-slate-900`}
       >
         <div
-          className={`aside-brand flex flex-row h-14 items-center justify-between dark:bg-slate-900`}
+          className={`aside-brand flex flex-row h-14 items-center justify-between dark:bg-purple-700 py-8`}
         >
-          <div className="text-center flex-1 lg:text-left lg:pl-6 xl:text-center xl:pl-0">
-            <b className="font-black">One</b>
+          <div className="flex items-center justify-center flex-1 gap-2 lg:justify-start lg:pl-6 xl:justify-center xl:pl-0 ">
+            <RodwellLogo />
+            <b className="font-black">Rodwell Learning Center</b>
           </div>
           <button
             className="hidden lg:inline-block xl:hidden p-3"

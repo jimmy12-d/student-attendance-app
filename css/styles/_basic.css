@@ -1,13 +1,13 @@
 @utility style-basic {
   &:not(.dark) {
     .aside {
-      @apply bg-gray-800;
+      @apply bg-purple-900;
     }
     .aside-scrollbars {
       @apply aside-scrollbars-gray;
     }
     .aside-brand {
-      @apply bg-gray-900 text-white;
+      @apply bg-purple-700 text-white;
     }
     .aside-menu-item {
       @apply text-gray-300 hover:text-white;
@@ -19,10 +19,10 @@
       @apply bg-gray-700/50;
     }
     .navbar-item-label {
-      @apply text-black hover:text-blue-500;
+      @apply text-black hover:text-purple-900;
     }
     .navbar-item-label-active {
-      @apply text-blue-600;
+      @apply text-purple-600;
     }
     .overlay {
       @apply from-gray-700 via-gray-900 to-gray-700;
