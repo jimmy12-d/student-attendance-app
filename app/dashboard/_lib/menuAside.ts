@@ -10,7 +10,9 @@ import {
   mdiTelevisionGuide,
   mdiResponsive,
   mdiPalette,
-  mdiClipboardListOutline
+  mdiClipboardListOutline,
+  mdiSearchWeb,
+  mdiMagnify
 } from "@mdi/js";
 import { MenuAsideItem } from "../../_interfaces";
 
@@ -38,7 +40,7 @@ const menuAside: MenuAsideItem[] = [
     {
     href: "/dashboard/check", // Path to your new page
     label: "Check",
-    icon: mdiClipboardListOutline, // Choose an appropriate icon
+    icon: mdiMagnify, // Choose an appropriate icon
   },
   {
     href: "/dashboard/tables",

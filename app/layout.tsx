@@ -4,10 +4,10 @@ import StoreProvider from "./_stores/StoreProvider";
 import Script from "next/script";
 import DarkModeInit from "./_components/DarkModeInit";
 
-const title = `Admin One React Tailwind free`;
+const title = `Rodwell Attendance`;
 
 const description =
-  "Admin One - free React Next Tailwind dashboard with TypeScript and dark mode";
+  "Rodwell Attendance System";
 
 const url = "https://justboil.github.io/admin-one-react-tailwind/";
 

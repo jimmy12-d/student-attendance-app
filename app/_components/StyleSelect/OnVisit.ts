@@ -9,10 +9,10 @@ export function OnVisit() {
   const dispatch = useAppDispatch();
 
   useEffect(() => {
-    if (darkMode) {
-      dispatch(setDarkMode(false));
-    }
-  });
+    // if (darkMode) {
+    //   dispatch(setDarkMode(false));
+    // }
+  }, []);
 
   return null;
 }

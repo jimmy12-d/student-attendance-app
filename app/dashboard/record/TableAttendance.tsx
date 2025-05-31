@@ -80,7 +80,7 @@ const TableAttendance = ({ records, onDeleteRecord, perPage = 10 }: Props) => {
               <th>Class</th>
               <th>Shift</th>
               <th>Status</th>
-              <th>Date</th> {/* Updated header */}
+              <th>Date</th>
               <th>Time
                 <span title="Ordered by time" className="ml-1 align-middle text-xs text-gray-400">▼</span>
               </th>
@@ -95,11 +95,11 @@ const TableAttendance = ({ records, onDeleteRecord, perPage = 10 }: Props) => {
                 <td data-label="Shift">{record.shift || 'N/A'}</td>
                 <td data-label="Status">
                   <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                    record.status.toLowerCase() === 'present' ? 'bg-green-100 text-green-800' :
-                    record.status.toLowerCase() === 'absent' ? 'bg-red-100 text-red-800' :
+                    record.status.toLowerCase() === 'present' ? 'bg-green-200 text-green-800' :
+                    record.status.toLowerCase() === 'absent' ? 'bg-red-200 text-red-800' :
                     'bg-gray-100 text-gray-800'
                   }`}>
-                    {record.status}
+                    {record.status.charAt(0).toUpperCase() + record.status.slice(1)}
                   </span>
                 </td>
                 <td data-label="Date" className="whitespace-nowrap">
