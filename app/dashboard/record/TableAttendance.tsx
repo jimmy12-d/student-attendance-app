@@ -96,8 +96,9 @@ const TableAttendance = ({ records, onDeleteRecord, perPage = 10 }: Props) => {
                 <td data-label="Status">
                   <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
                     record.status.toLowerCase() === 'present' ? 'bg-green-200 text-green-800' :
-                    record.status.toLowerCase() === 'absent' ? 'bg-red-200 text-red-800' :
-                    'bg-gray-100 text-gray-800'
+                    record.status.toLowerCase() === 'late' ? 'bg-yellow-200 text-yellow-800 border border-yellow-300' :
+                    record.status.toLowerCase() === 'absent' ? 'bg-red-200 text-red-800' : // Kept your existing absent style
+                    'bg-gray-100 text-gray-800' // Default for other statuses
                   }`}>
                     {record.status.charAt(0).toUpperCase() + record.status.slice(1)}
                   </span>

@@ -9,7 +9,7 @@ import { Student } from "../../_interfaces"; // Assuming Student interface is in
 // Interface for the data this table will display
 export interface DailyStudentStatus extends Student {
   attendanceDate: string; // The date for which the status is being shown
-  attendanceStatus: "Present" | "Absent" | "Unknown"; // Derived status
+  attendanceStatus: "Present" | "Late" | "Absent" | "Unknown";
   actualTimestamp?: Timestamp | Date; // Timestamp of actual check-in if present
 }
 
@@ -73,7 +73,7 @@ const TableDailyStatus: React.FC<Props> = ({ statuses, perPage = 10 }) => {
               <th>Shift</th>
               <th>Date</th>
               <th>Status</th>
-              <th>Time (if Present)</th>
+              <th>Time</th>
             </tr>
           </thead>
           <tbody>
@@ -88,6 +88,7 @@ const TableDailyStatus: React.FC<Props> = ({ statuses, perPage = 10 }) => {
                 <td data-label="Status">
                   <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
                     statusEntry.attendanceStatus === 'Present' ? 'bg-green-200 text-green-800' :
+                    statusEntry.attendanceStatus === 'Late' ? 'bg-yellow-100 text-yellow-800 border border-yellow-300' :
                     statusEntry.attendanceStatus === 'Absent' ? 'bg-red-200 text-red-800' :
                     'bg-gray-100 text-gray-800' // For "Unknown" or other statuses
                   }`}>
@@ -95,7 +96,7 @@ const TableDailyStatus: React.FC<Props> = ({ statuses, perPage = 10 }) => {
                   </span>
                 </td>
                 <td data-label="Time" className="whitespace-nowrap">
-                  {statusEntry.attendanceStatus === 'Present' && statusEntry.actualTimestamp
+                  {(statusEntry.attendanceStatus === 'Present' || statusEntry.attendanceStatus === 'Late') && statusEntry.actualTimestamp
                     ? (statusEntry.actualTimestamp instanceof Timestamp
                         ? statusEntry.actualTimestamp.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })
                         : statusEntry.actualTimestamp instanceof Date

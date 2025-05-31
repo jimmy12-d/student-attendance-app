@@ -11,9 +11,54 @@ const VIDEO_ELEMENT_CONTAINER_ID = "qr-video-reader-container";
 const SCAN_COOLDOWN_MS = 3000;
 const FEEDBACK_DISPLAY_MS = 3000;
 
+// --- Global Timing Rules ---
+const STANDARD_ON_TIME_GRACE_MINUTES = 15;
+const LATE_WINDOW_DURATION_MINUTES = 90; // Duration of the 'late' window AFTER on-time grace ends
+
+interface ShiftTimeWindows {
+  onTimeEnd: string;   // Scan before or at this time is "Present (On-Time)"
+  lateEnd: string;     // Scan after onTimeEnd but before or at this time is "Late"
+                       // Scans after lateEnd might be considered "Very Late" or "Absent" by policy,
+                       // but for now, we'll just focus on Present vs Late within these windows.
+}
+
+const shiftTimings: { [key: string]: ShiftTimeWindows } = {
+  "Morning": { onTimeEnd: "07:15", lateEnd: "8:30" },
+  "Afternoon": { onTimeEnd: "13:15", lateEnd: "14:30" },
+  "Evening": { onTimeEnd: "18:00", lateEnd: "19:00" },
+};
+
+const lateMessages = [
+  "Fashionably late, I see!",
+  "Better late than never, right?",
+  "AGAIN! How many times already?",
+  "You must have a good excuse this time!",
+  "You know the rules, right?",
+  "Glad you could make it!",
+  "Traffic was bad, huh? 😉",
+];
+
+const getRandomLateMessage = (name: string) => {
+  const message = lateMessages[Math.floor(Math.random() * lateMessages.length)];
+  return `${name} is LATE! ${message}`;
+};
+// --- End Shift Times and Late Logic ---
+
+// Interface for the structure of class config data we expect to fetch
+interface ShiftConfig {
+  startTime: string; // "HH:MM"
+  // standardGraceMinutes and lateCutOffMinutes are now global constants
+}
+interface ClassShiftConfigs {
+  [shiftName: string]: ShiftConfig;
+}
+interface AllClassConfigs {
+  [className: string]: { shifts: ClassShiftConfigs };
+}
+
 const AttendanceScanner: React.FC = () => {
   const [scannedStudentInfo, setScannedStudentInfo] = useState<string | null>(null);
-  const [feedbackMessage, setFeedbackMessage] = useState<{ type: 'success' | 'error' | 'info', text: string } | null>(null);
+  const [feedbackMessage, setFeedbackMessage] = useState<{ type: 'success' | 'error' | 'info' | 'warning', text: string } | null>(null);
   const [isScanning, setIsScanning] = useState(false);
 
   const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
@@ -23,6 +68,10 @@ const AttendanceScanner: React.FC = () => {
   const successSoundRef = useRef<HTMLAudioElement | null>(null);
   const videoContainerRef = useRef<HTMLDivElement>(null); // Ref for the video container div
 
+    // State for class configurations
+  const [allClassConfigs, setAllClassConfigs] = useState<AllClassConfigs | null>(null);
+  const [loadingClassConfigs, setLoadingClassConfigs] = useState(true);
+
   // Initialize Audio
   useEffect(() => {
     if (typeof Audio !== "undefined") {
@@ -30,10 +79,32 @@ const AttendanceScanner: React.FC = () => {
         const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
         const soundFilePath = `${basePath}/success_sound_2.mp3`;
         successSoundRef.current = new Audio(soundFilePath);
-        console.log("Audio initialized with src:", soundFilePath);
       } catch (e) { console.warn("Could not initialize audio:", e); }
     }
+
+        // Fetch Class Configurations
+    const fetchAllClassData = async () => {
+      setLoadingClassConfigs(true); // Correctly sets loading true
+      try {
+        const snapshot = await getDocs(collection(db, "classes"));
+        const configs: AllClassConfigs = {};
+        snapshot.forEach(doc => {
+          configs[doc.id] = doc.data() as { shifts: ClassShiftConfigs };
+        });
+        setAllClassConfigs(configs); // Correctly sets configs
+      } catch (error) {
+        console.error("Failed to fetch class configurations:", error);
+        // showFeedback('error', "Critical: Failed to load class time configurations. Attendance status may be incorrect.");
+        // If showFeedback is used here, it needs to be stable or added to deps.
+        // For simplicity, let's use setError directly if available or just log for now.
+        // setError("Critical: Failed to load class time configurations."); // Assuming setError is available
+      }
+      setLoadingClassConfigs(false); // Correctly sets loading false
+    };
+    fetchAllClassData();
   }, []);
+
+  
 
   // Cleanup general timers on unmount
   useEffect(() => {
@@ -43,15 +114,15 @@ const AttendanceScanner: React.FC = () => {
     };
   }, []);
 
-  const playSuccessSound = useCallback(() => { /* ... your existing correct logic ... */ 
+  const playSuccessSound = useCallback(() => {
     if (successSoundRef.current) {
       successSoundRef.current.currentTime = 0;
       successSoundRef.current.play().catch(error => console.warn("Error playing sound:", error));
     }
   }, []);
 
-  const showFeedback = useCallback((type: 'success' | 'error' | 'info', text: string) => { /* ... your existing correct logic ... */ 
-    setFeedbackMessage({ type, text });
+  const showFeedback = useCallback((type: 'success' | 'error' | 'info' | 'warning', text: string) => {
+    setFeedbackMessage({type, text });
     if (feedbackTimerIdRef.current) clearTimeout(feedbackTimerIdRef.current);
     feedbackTimerIdRef.current = setTimeout(() => {
       setFeedbackMessage(null);
@@ -76,173 +147,269 @@ const AttendanceScanner: React.FC = () => {
       showFeedback('error', `Invalid Student ID format: ${decodedText.substring(0, 30)}...`);
       return;
     }
+    const studentIdToProcess = decodedText; 
 
     try {
-      const studentDocRef = doc(db, "students", decodedText);
+      const studentDocRef = doc(db, "students", studentIdToProcess);
       const studentSnap = await getDoc(studentDocRef);
+
       if (!studentSnap.exists()) {
-        showFeedback('error', `Student ID [${decodedText}] not found.`);
+        showFeedback('error', `Student ID [${studentIdToProcess}] not found.`);
         return;
       }
       const studentData = { id: studentSnap.id, ...studentSnap.data() } as Student;
       setScannedStudentInfo(`${studentData.fullName} (Class: ${studentData.class || 'N/A'})`);
 
-      const today = new Date();
-      const dateString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;      const attendanceQuery = query(collection(db, "attendance"), where("studentId", "==", decodedText), where("date", "==", dateString));
+      const currentTime = new Date();
+      const dateString = `${currentTime.getFullYear()}-${String(currentTime.getMonth() + 1).padStart(2, '0')}-${String(currentTime.getDate()).padStart(2, '0')}`;
+      
+      // Check if already marked (present or late) today
+      const attendanceQuery = query(
+        collection(db, "attendance"),
+        where("studentId", "==", studentIdToProcess),
+        where("date", "==", dateString)
+      );
       const attendanceSnapshot = await getDocs(attendanceQuery);
 
       if (!attendanceSnapshot.empty) {
-        showFeedback('info', `${studentData.fullName} is already marked present for ${dateString}.`);
+        const existingStatus = attendanceSnapshot.docs[0].data().status || "present";
+        showFeedback('info', `${studentData.fullName} already marked ${existingStatus} today.`);
         return;
       }
-      await addDoc(collection(db, "attendance"), {
-        studentId: decodedText, studentName: studentData.fullName, class: studentData.class || null,
-        shift: studentData.shift || null, date: dateString, timestamp: serverTimestamp(), status: "present",
-      });
-      playSuccessSound();
-      showFeedback('success', `${studentData.fullName} marked present!`);
+
+      // Determine attendance status (Present or Late)
+      let attendanceStatus: "present" | "late" = "present"; // Default to present (on-time)
+      const studentClassKey = studentData.class; // e.g., "12A" from student's record
+      const studentShiftKey = studentData.shift; // e.g., "Morning" from student's record
+
+      console.log(`[STATUS LOGIC] Student: <span class="math-inline">\{studentData\.fullName\}, Class\: '</span>{studentClassKey}', Shift: '${studentShiftKey}'`);
+
+ if (loadingClassConfigs) {
+   showFeedback('error', "Class time configurations are still loading. Please try again shortly.");
+   // Note: Cooldown for decodedText is already set at the start of onScanSuccess
+   return; // Exit if configs aren't ready
+ }
+ if (!allClassConfigs) {
+   showFeedback('error', "Class time configurations not loaded. Cannot determine status accurately.");
+   return; // Exit
+ }
+
+ const classConfig = studentClassKey ? allClassConfigs[studentClassKey] : undefined;
+ const shiftConfig = (studentShiftKey && classConfig?.shifts) ? classConfig.shifts[studentShiftKey] : undefined;
+
+ if (shiftConfig && shiftConfig.startTime) {
+   console.log(`[STATUS LOGIC] Found shift config for ${studentClassKey} - ${studentShiftKey}: StartTime ${shiftConfig.startTime}`);
+   const [startHour, startMinute] = shiftConfig.startTime.split(':').map(Number);
+
+   const shiftStartTimeDate = new Date(currentTime); // Use current date, but set hours/minutes from config
+   shiftStartTimeDate.setHours(startHour, startMinute, 0, 0); // seconds and ms to 0
+
+   // FOR NOW: Use STANDARD_ON_TIME_GRACE_MINUTES.
+   // LATER (Step 3 of overall plan), this will be:
+   // const studentSpecificGraceMinutes = studentData.gracePeriodMinutes ?? STANDARD_ON_TIME_GRACE_MINUTES;
+   const studentSpecificGraceMinutes = STANDARD_ON_TIME_GRACE_MINUTES;
+
+   const onTimeDeadline = new Date(shiftStartTimeDate);
+   onTimeDeadline.setMinutes(shiftStartTimeDate.getMinutes() + studentSpecificGraceMinutes);
+
+   const absoluteLateDeadline = new Date(onTimeDeadline); // Late window starts after on-time grace
+   absoluteLateDeadline.setMinutes(onTimeDeadline.getMinutes() + LATE_WINDOW_DURATION_MINUTES);
+
+   console.log(`[STATUS LOGIC] Shift Start Time: ${shiftStartTimeDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit'})}`);
+   console.log(`[STATUS LOGIC] Student's On-Time Deadline (incl. ${studentSpecificGraceMinutes}m grace): ${onTimeDeadline.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit'})}`);
+   console.log(`[STATUS LOGIC] Absolute Late Deadline (incl. further ${LATE_WINDOW_DURATION_MINUTES}m late window): ${absoluteLateDeadline.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit'})}`);
+   console.log(`[STATUS LOGIC] Current Scan Time: ${currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit'})}`);
+
+      if (currentTime <= onTimeDeadline) {
+        attendanceStatus = "present";
+      } else if (currentTime > onTimeDeadline && currentTime <= absoluteLateDeadline) {
+        attendanceStatus = "late";
+      } else { // currentTime > absoluteLateDeadline
+        attendanceStatus = "late"; // Policy: Still mark as "late" if they are past the official late window
+                                    // You might want a different status like "very_late" or prevent check-in
+      }
+      console.log(`[STATUS LOGIC] Determined Status: ${attendanceStatus.toUpperCase()}`);
+    } else {
+      console.warn(`[STATUS LOGIC] Shift config not found for Class '<span class="math-inline">\{studentClassKey\}', Shift '</span>{studentShiftKey}'. Defaulting to 'present'. This might happen if class/shift names in student record don't match keys in 'classes' collection.`);
+      attendanceStatus = "present"; // Default if specific shift timing isn't found
+    }
+    // ^^^^ END OF MODIFIED SECTION ^^^^
+
+    console.log(`[DB SAVE] Final attendanceStatus: '${attendanceStatus}' for ${studentData.fullName}`);
+    
+    // Record attendance in Firestore (this part remains the same, using the new attendanceStatus)
+    await addDoc(collection(db, "attendance"), {
+      studentId: studentIdToProcess,
+      studentName: studentData.fullName,
+      class: studentData.class || null,
+      shift: studentShiftKey || null, // Use the shift key from student data
+      date: dateString,
+      timestamp: serverTimestamp(),
+      status: attendanceStatus, // Save the dynamically determined status
+    });
+      playSuccessSound(); // Play sound regardless of on-time or late for now
+      if (attendanceStatus === "late") {
+        showFeedback('warning', getRandomLateMessage(studentData.fullName));
+      } else {
+        showFeedback('success', `${studentData.fullName} marked present!`);
+      }
+
     } catch (error: any) {
       console.error("Error processing attendance:", error);
       showFeedback('error', `Error processing: ${error.message || 'Unknown error'}`);
     }
-  }, [playSuccessSound, showFeedback]);
+  }, [playSuccessSound, showFeedback, allClassConfigs, loadingClassConfigs]); // Dependencies
+
   const onScanFailure = useCallback((errorMessage: string) => { /* ... */ }, []);
 
-  // Effect to Start and Stop the scanner
-  useEffect(() => {
-    let currentScannerInstance: Html5Qrcode | null = null;
+  const initializeScanner = useCallback(async () => { // Make it async
+    if (!videoContainerRef.current) {
+      showFeedback('error', 'Video container element not found.');
+      setIsScanning(false); // Ensure state is correct
+      return;
+    }
+    // Ensure container is empty before new instance renders into it
+    videoContainerRef.current.innerHTML = '';
+    console.log("initializeScanner: Initializing new scanner instance.");
 
-    const startScannerAsync = async () => {
-      if (!videoContainerRef.current) {
-        showFeedback('error', 'Video container element not found in DOM for starting scan.');
-        setIsScanning(false);
+    const newHtml5QrCodeInstance = new Html5Qrcode(VIDEO_ELEMENT_CONTAINER_ID, { verbose: false });
+    // Temporarily set ref to allow guard checks in async operations,
+    // but it's only "truly" set after successful start.
+    // This is a bit tricky. Let's assign to ref now, but clear on failure.
+    html5QrCodeRef.current = newHtml5QrCodeInstance;
+
+
+    const qrCodeScanConfiguration: Html5QrcodeCameraScanConfig = {
+      fps: 10,
+      qrbox: (viewfinderWidth, viewfinderHeight) => {
+        const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+        const qrSize = Math.max(100, Math.floor(minEdge * 0.8));
+        return { width: qrSize, height: qrSize };
+      },
+    };
+
+    try {
+      const cameras = await Html5Qrcode.getCameras();
+      // Crucial check: If isScanning became false OR if the ref changed (e.g. stop was called)
+      // while getCameras was running, then abort.
+      if (!isScanning || html5QrCodeRef.current !== newHtml5QrCodeInstance) {
+        console.log("Scanner start aborted: isScanning changed or ref mismatch during getCameras.");
+        if (html5QrCodeRef.current === newHtml5QrCodeInstance) html5QrCodeRef.current = null; // Clear our ref if we set it
+        // The newHtml5QrCodeInstance here was created but never started, so no need to call .stop() on it.
         return;
       }
-      // Ensure container is empty before new instance renders into it
-      videoContainerRef.current.innerHTML = '';
-      console.log("useEffect[isScanning=true]: Initializing scanner.");
 
-      currentScannerInstance = new Html5Qrcode(VIDEO_ELEMENT_CONTAINER_ID, { verbose: false });
-      // Set the main ref here, as this is the instance we are working with for this "start" attempt
-      html5QrCodeRef.current = currentScannerInstance;
+      if (cameras && cameras.length) {
+        let cameraId = cameras[0].id;
+        const backCamera = cameras.find(c => c.label && c.label.toLowerCase().includes('back'));
+        if (backCamera) cameraId = backCamera.id;
 
-      const qrCodeScanConfiguration: Html5QrcodeCameraScanConfig = {
-        fps: 10,
-        qrbox: (viewfinderWidth, viewfinderHeight) => {
-          const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-          // Ensure qrbox size is at least a certain minimum if viewfinder is too small temporarily
-          const qrSize = Math.max(100, Math.floor(minEdge * 0.8));
-          return { width: qrSize, height: qrSize };
-        },
-      };
-
-      try {
-        const cameras = await Html5Qrcode.getCameras();
-        if (!isScanning || html5QrCodeRef.current !== currentScannerInstance) {
-          console.log("Start aborted by state change during getCameras");
-          if(currentScannerInstance && currentScannerInstance.isScanning) currentScannerInstance.stop().catch(()=>{}); // cleanup local instance
-          if(html5QrCodeRef.current === currentScannerInstance) html5QrCodeRef.current = null;
-          return;
-        }
-
-        if (cameras && cameras.length) {
-          let cameraId = cameras[0].id;
-          const backCamera = cameras.find(c => c.label && c.label.toLowerCase().includes('back'));
-          if (backCamera) cameraId = backCamera.id;
-
-          await currentScannerInstance.start(cameraId, qrCodeScanConfiguration, onScanSuccess, onScanFailure);
-          console.log("Scanner started successfully.");
-          // isScanning is already true
-        } else {
-          showFeedback('error', 'No cameras found.');
-          setIsScanning(false); // Failed to start
-          html5QrCodeRef.current = null;
-        }
-      } catch (err) {
-        console.error("Error during scanner start process:", err);
-        showFeedback('error', `Camera Error: ${(err as Error).message}`);
-        setIsScanning(false); // Failed to start
-        // If this specific instance was set to the ref, clear it
-        if (html5QrCodeRef.current === currentScannerInstance) {
-          html5QrCodeRef.current = null;
-        }
-      }
-    };
-
-    if (isScanning) {
-      // Only attempt to start if no instance is currently in the ref.
-      // This implies a previous stop was successful or it's the first start.
-      if (!html5QrCodeRef.current) {
-        startScannerAsync();
+        await newHtml5QrCodeInstance.start(cameraId, qrCodeScanConfiguration, onScanSuccess, onScanFailure);
+        console.log("Scanner started successfully by initializeScanner.");
+        // isScanning is already true. html5QrCodeRef.current is already set to newHtml5QrCodeInstance.
       } else {
-        console.log("isScanning is true, but html5QrCodeRef.current already exists. Scanner might be already running or in an inconsistent state.");
-        // This state should ideally be avoided by proper stop logic.
-        // If it's not scanning, we might need to re-init.
-        // For now, we assume if ref exists and isScanning is true, it's operational.
+        showFeedback('error', 'No cameras found.');
+        setIsScanning(false);
+        html5QrCodeRef.current = null; // Clear ref
       }
-    }
-
-    // Cleanup function for THIS useEffect.
-    return () => {
-      console.log("useEffect [isScanning, deps] cleanup running.");
-      // `currentScannerInstance` is the one created in *this* effect run if `isScanning` was true.
-      // `html5QrCodeRef.current` is the shared ref.
-      const scannerToPotentiallyStop = currentScannerInstance || html5QrCodeRef.current;
-
-      if (scannerToPotentiallyStop) {
-        // If this cleanup is for the instance currently in the global ref, nullify the global ref.
-        if (html5QrCodeRef.current === scannerToPotentiallyStop) {
-          html5QrCodeRef.current = null;
-        }
-        
-        if (scannerToPotentiallyStop.isScanning) {
-          console.log("   Cleanup: Attempting to stop scanner instance:", scannerToPotentiallyStop.getState());
-          scannerToPotentiallyStop.stop()
-            .then(() => console.log("   Scanner stopped successfully in cleanup."))
-            .catch(err => console.warn("   Error stopping scanner in cleanup:", err.message || err))
-            .finally(() => {
-              if (videoContainerRef.current) {
-                // Check if this was the last active scanner before clearing innerHTML
-                 if (!html5QrCodeRef.current) videoContainerRef.current.innerHTML = '';
-              }
-            });
-        } else {
-          console.log("   Cleanup: Instance found but was not 'isScanning'. Ensuring UI is clear.");
-           if (videoContainerRef.current && !html5QrCodeRef.current) { // Only clear if no new instance is taking over
-            videoContainerRef.current.innerHTML = '';
-          }
-        }
-      }
-    };
-  }, [isScanning, onScanSuccess, onScanFailure, showFeedback]); // Dependencies
-
-  const handleStartScan = () => {
-    if (!isScanning) {
-      setFeedbackMessage(null);
-      setScannedStudentInfo(null);
-      setIsScanning(true);
-    }
-  };
-
-  const handleStopScan = () => {
-    if (isScanning) { // Only if react state thinks it should be scanning
-      setIsScanning(false); // This will trigger the useEffect cleanup for the active instance
-    } else {
-      // If isScanning is already false, but a ref still exists (e.g. failed start), try to clean up.
-      if (html5QrCodeRef.current) {
-        console.log("handleStopScan: isScanning is false, but ref exists. Forcing cleanup of lingering ref.");
-        const lingeringScanner = html5QrCodeRef.current;
+    } catch (err) {
+      console.error("Error during scanner initialization or start process:", err);
+      showFeedback('error', `Camera Error: ${(err as Error).message}`);
+      setIsScanning(false);
+      // If this specific instance was set to the ref and failed, clear it
+      if (html5QrCodeRef.current === newHtml5QrCodeInstance) {
         html5QrCodeRef.current = null;
-        if (lingeringScanner.isScanning) { // Check before stop
-          lingeringScanner.stop().catch(() => {}).finally(() => {
-            if (videoContainerRef.current) videoContainerRef.current.innerHTML = '';
-          });
-        } else if (videoContainerRef.current) {
-          videoContainerRef.current.innerHTML = '';
+      }
+    }
+  // Add dependencies for initializeScanner's own useCallback
+  }, [isScanning, onScanSuccess, onScanFailure, showFeedback]); 
+  // Effect to Start and Stop the scanner
+useEffect(() => {
+    if (isScanning) {
+      if (!html5QrCodeRef.current && videoContainerRef.current) {
+        // Check for dimensions as a possible guard before calling initializeScanner
+        if (videoContainerRef.current.clientWidth > 0 || videoContainerRef.current.clientHeight > 0) {
+            initializeScanner();
+        } else {
+            const initTimeoutId = setTimeout(() => {
+                if (isScanning && !html5QrCodeRef.current && videoContainerRef.current &&
+                    (videoContainerRef.current.clientWidth > 0 || videoContainerRef.current.clientHeight > 0)) {
+                    initializeScanner();
+                } else if (isScanning) {
+                    console.error("Still no dimensions for video container after delay.");
+                    showFeedback('error', 'Camera view could not be sized. Try again.');
+                    setIsScanning(false);
+                }
+            }, 50); // Short delay
+            // Return a cleanup for this timeout if isScanning becomes false quickly
+            return () => clearTimeout(initTimeoutId);
         }
       }
     }
-  };
+    // The main cleanup for when isScanning becomes false OR component unmounts OR dependencies change
+    // is handled by the return function of THIS useEffect (as in your latest code)
+    return () => {
+        if (html5QrCodeRef.current) {
+            const scannerToStop = html5QrCodeRef.current;
+            html5QrCodeRef.current = null; // Nullify ref before async stop
+            if (scannerToStop.isScanning) {
+                scannerToStop.stop()
+                    .then(() => console.log("Scanner stopped in useEffect cleanup."))
+                    .catch(err => console.warn("Error stopping scanner in useEffect cleanup:", err.message || err))
+                    .finally(() => {
+                        if (videoContainerRef.current) videoContainerRef.current.innerHTML = '';
+                    });
+            } else if (videoContainerRef.current) {
+                 videoContainerRef.current.innerHTML = ''; // Not scanning, just clear UI
+            }
+        }
+    };
+// Pass initializeScanner as a dependency if it's defined with useCallback outside,
+// or if it's defined inside, its own dependencies (like onScanSuccess, showFeedback) should make this effect re-run correctly.
+// For robustness, if initializeScanner is a useCallback, add it.
+}, [isScanning, initializeScanner, onScanSuccess, onScanFailure, showFeedback]); 
+
+
+const handleStartScan = () => {
+ if (loadingClassConfigs) {
+   showFeedback('info', "System is initializing. Please wait a moment.");
+   return;
+ }
+  if (!isScanning) {
+    setFeedbackMessage(null);
+    setScannedStudentInfo(null);
+    if (videoContainerRef.current) {
+      //videoContainerRef.current.innerHTML = '';
+    }
+    setIsScanning(true); // This will trigger the useEffect to initialize the scanner
+  } else {
+  }
+};
+
+const handleStopScan = () => {
+  if (isScanning) {
+    console.log("handleStopScan: Setting isScanning to false.");
+    setIsScanning(false); // This will trigger the useEffect cleanup for the active instance
+  } else {
+    // If isScanning is already false, but a ref might still exist (e.g., from a failed start that didn't nullify ref),
+    // try a more direct cleanup if needed. The useEffect should handle most cases.
+    if (html5QrCodeRef.current) {
+      console.warn("handleStopScan: isScanning is false, but ref exists. Forcing cleanup of lingering ref.");
+      const lingeringScanner = html5QrCodeRef.current;
+      html5QrCodeRef.current = null;
+      if (lingeringScanner.isScanning) {
+        lingeringScanner.stop().catch(()=>{/* ignore */}).finally(() => {
+          if (videoContainerRef.current) videoContainerRef.current.innerHTML = '';
+        });
+      } else if (videoContainerRef.current) {
+        videoContainerRef.current.innerHTML = '';
+      }
+    } else {
+       console.log("handleStopScan: isScanning is already false and no ref exists.");
+    }
+  }
+};
+
 
   return (
     <CardBox className="mx-auto max-w-xl">
@@ -264,8 +431,8 @@ const AttendanceScanner: React.FC = () => {
         )}
       </div>
       <div className="flex flex-col sm:flex-row justify-center space-y-3 sm:space-y-0 sm:space-x-4 mb-6">
-        <button onClick={handleStartScan} disabled={isScanning} className="px-6 py-3 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-opacity-75 disabled:opacity-60 transition duration-150 ease-in-out">
-          Start Scan
+        <button onClick={handleStartScan} disabled={isScanning || loadingClassConfigs} className="px-6 py-3 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-opacity-75 disabled:opacity-60 transition duration-150 ease-in-out">
+    {loadingClassConfigs ? "Loading Config..." : "Start Scan"}
         </button>
         <button onClick={handleStopScan} disabled={!isScanning} className="px-6 py-3 bg-red-600 text-white font-semibold rounded-lg shadow-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-opacity-75 disabled:opacity-60 transition duration-150 ease-in-out">
           Stop Scan
@@ -284,6 +451,7 @@ const AttendanceScanner: React.FC = () => {
             ${feedbackMessage.type === 'success' ? 'bg-green-50 text-green-700 border-green-300' : ''}
             ${feedbackMessage.type === 'error' ? 'bg-red-50 text-red-700 border-red-300' : ''}
             ${feedbackMessage.type === 'info' ? 'bg-blue-50 text-blue-700 border-blue-300' : ''}
+            ${feedbackMessage.type === 'warning' ? 'bg-yellow-100 text-yellow-800 border-yellow-400' : ''} 
             `}
         >
             {feedbackMessage.text}

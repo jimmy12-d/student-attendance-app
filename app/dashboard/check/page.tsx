@@ -32,22 +32,47 @@ export default function CheckAttendancePage() {
   const [selectedShifts, setSelectedShifts] = useState<string[]>([]);
   const [searchName, setSearchName] = useState<string>("");
 
+  const [availableClasses, setAvailableClasses] = useState<MultiSelectOption[]>([]);
+  const [loadingClasses, setLoadingClasses] = useState<boolean>(true); // To show loading state for class dropdown
+
   const [studentStatuses, setStudentStatuses] = useState<DailyStudentStatus[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Options for the custom dropdowns
-  const classList = ["10A", "10B", "11A", "11B", "12A", "12B", "Class C1", "Class C2", "Class C3"];
-  const classOptions: MultiSelectOption[] = classList.map(c => ({ value: c, label: c }));
-
   const shiftList = ["Morning", "Afternoon", "Evening"]; // Your 3 shifts
   const shiftOptions: MultiSelectOption[] = shiftList.map(s => ({ value: s, label: s }));
+
 
   const showFeedback = useCallback((type: 'error' | 'info', text: string) => {
     if (type === 'error') setError(text);
     if (type === 'info' && !error) setError(text);
     setTimeout(() => setError(null), FEEDBACK_DISPLAY_MS + 2000);
   }, [error]);
+
+  useEffect(() => {
+  const fetchClasses = async () => {
+    setLoadingClasses(true);
+    try {
+      const classesCollectionRef = collection(db, "classes");
+      // Optionally order them, e.g., by name
+      const q = query(classesCollectionRef, orderBy("name"));
+      const querySnapshot = await getDocs(q);
+      const fetchedClasses = querySnapshot.docs.map(doc => ({
+        value: doc.data().name as string, // Assuming your documents have a 'name' field
+        label: doc.data().name as string,
+      }));
+      setAvailableClasses(fetchedClasses);
+    } catch (error) {
+      console.error("Error fetching classes: ", error);
+      // Use your existing showFeedback or setError for user feedback
+      showFeedback('error', 'Failed to load class list.');
+      setAvailableClasses([]); // Set to empty array on error
+    }
+    setLoadingClasses(false);
+  };
+
+  fetchClasses();
+}, [showFeedback]); 
 
   const fetchAttendanceData = useCallback(async () => {
     setLoading(true);
@@ -104,7 +129,6 @@ export default function CheckAttendancePage() {
         return;
       }
 
-
       if (rosterStudents.length === 0) {
         showFeedback('info', `No students match the selected class/shift criteria.`);
         setLoading(false);
@@ -124,7 +148,6 @@ export default function CheckAttendancePage() {
             if (studentIdBatch.length > 0) {
                 const q = query(collection(db, "attendance"),
                     where("date", "==", selectedDate),
-                    where("status", "==", "present"),
                     where("studentId", "in", studentIdBatch)
                 );
                 attendancePromises.push(getDocs(q));
@@ -141,16 +164,27 @@ export default function CheckAttendancePage() {
       }
 
       // 3. Determine status for each student in the roster
-      let dailyStatusesResult = rosterStudents.map(student => {
-        const isPresent = presentStudentIds.has(student.id);
-        const attendanceRecord = presentRecordsMap.get(student.id);
+        let dailyStatusesResult = rosterStudents.map(student => {
+        const attendanceRecord = presentRecordsMap.get(student.id); // presentRecordsMap now contains full attendance docs
+        let status: "Present" | "Late" | "Absent" | "Unknown" = "Absent"; // Default to Absent
+
+        if (attendanceRecord) { // If a record exists for the student on that day
+            if (attendanceRecord.status === "late") {
+            status = "Late";
+            } else if (attendanceRecord.status === "present") {
+            status = "Present";
+            } else {
+            status = "Unknown"; // Or handle other statuses from DB if any
+            }
+        }
+
         return {
-          ...student,
-          attendanceDate: selectedDate,
-          attendanceStatus: isPresent ? "Present" : "Absent",
-          actualTimestamp: attendanceRecord?.timestamp,
+            ...student,
+            attendanceDate: selectedDate,
+            attendanceStatus: status,
+            actualTimestamp: attendanceRecord?.timestamp,
         } as DailyStudentStatus;
-      });
+        });
 
       if (searchName.trim() !== "") {
         dailyStatusesResult = dailyStatusesResult.filter(record =>
@@ -192,10 +226,10 @@ export default function CheckAttendancePage() {
             {(fd) => (
               <CustomMultiSelectDropdown
                 id="checkClassMulti"
-                options={classOptions}
+                options={availableClasses}
                 selectedValues={selectedClasses}
                 onChange={setSelectedClasses}
-                placeholder="Select Class"
+                placeholder={loadingClasses ? "Loading classes..." : (availableClasses.length === 0 ? "No classes available" : "Select Class")}
                 fieldData={fd} // Allows FormField to pass its calculated className
               />
             )}
