@@ -12,7 +12,8 @@ import {
   mdiPalette,
   mdiClipboardListOutline,
   mdiSearchWeb,
-  mdiMagnify
+  mdiMagnify,
+  mdiAccountClockOutline
 } from "@mdi/js";
 import { MenuAsideItem } from "../../_interfaces";
 
@@ -37,10 +38,15 @@ const menuAside: MenuAsideItem[] = [
     label: "Attendance",
     icon: mdiClipboardListOutline, // Choose an appropriate icon
   },
-    {
+  {
     href: "/dashboard/check", // Path to your new page
     label: "Check",
     icon: mdiMagnify, // Choose an appropriate icon
+  },
+  {
+    href: "/dashboard/manage-excuses", // Path to your new page
+    label: "Late Permission",
+    icon: mdiAccountClockOutline, // Choose an appropriate icon
   },
   {
     href: "/dashboard/tables",

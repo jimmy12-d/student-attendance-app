@@ -19,14 +19,7 @@ interface ShiftTimeWindows {
   onTimeEnd: string;   // Scan before or at this time is "Present (On-Time)"
   lateEnd: string;     // Scan after onTimeEnd but before or at this time is "Late"
                        // Scans after lateEnd might be considered "Very Late" or "Absent" by policy,
-                       // but for now, we'll just focus on Present vs Late within these windows.
 }
-
-const shiftTimings: { [key: string]: ShiftTimeWindows } = {
-  "Morning": { onTimeEnd: "07:15", lateEnd: "8:30" },
-  "Afternoon": { onTimeEnd: "13:15", lateEnd: "14:30" },
-  "Evening": { onTimeEnd: "18:00", lateEnd: "19:00" },
-};
 
 const lateMessages = [
   "Fashionably late, I see!",
@@ -82,7 +75,7 @@ const AttendanceScanner: React.FC = () => {
       } catch (e) { console.warn("Could not initialize audio:", e); }
     }
 
-        // Fetch Class Configurations
+    // Fetch Class Configurations
     const fetchAllClassData = async () => {
       setLoadingClassConfigs(true); // Correctly sets loading true
       try {
@@ -103,8 +96,6 @@ const AttendanceScanner: React.FC = () => {
     };
     fetchAllClassData();
   }, []);
-
-  
 
   // Cleanup general timers on unmount
   useEffect(() => {
@@ -205,7 +196,7 @@ const AttendanceScanner: React.FC = () => {
    shiftStartTimeDate.setHours(startHour, startMinute, 0, 0); // seconds and ms to 0
 
    // FOR NOW: Use STANDARD_ON_TIME_GRACE_MINUTES.
-   // LATER (Step 3 of overall plan), this will be:
+   // LATER (Step 3 of overall plan), this will be: edit here to use student-specific grace period
    // const studentSpecificGraceMinutes = studentData.gracePeriodMinutes ?? STANDARD_ON_TIME_GRACE_MINUTES;
    const studentSpecificGraceMinutes = STANDARD_ON_TIME_GRACE_MINUTES;
 
@@ -224,7 +215,7 @@ const AttendanceScanner: React.FC = () => {
         attendanceStatus = "present";
       } else if (currentTime > onTimeDeadline && currentTime <= absoluteLateDeadline) {
         attendanceStatus = "late";
-      } else { // currentTime > absoluteLateDeadline
+      } else { // currentTime > absoluteLateDeadline edit here 
         attendanceStatus = "late"; // Policy: Still mark as "late" if they are past the official late window
                                     // You might want a different status like "very_late" or prevent check-in
       }
