@@ -13,9 +13,9 @@ import TableDailyStatus, { DailyStudentStatus } from "./TableDailyStatus"; // Or
 import DailyStatusDetailsModal from "../_components/DailyStatusDetailsModal"; // Adjust path as needed
 import { Student } from "../../_interfaces";
 import { db } from "../../../firebase-config";
-import { collection, getDocs, query, where, orderBy, Timestamp,doc, CollectionReference, DocumentData} from "firebase/firestore";
+import { QuerySnapshot,collection, getDocs, query, where, orderBy, Timestamp,doc, CollectionReference, DocumentData} from "firebase/firestore";
 import { AttendanceRecord } from "../record/TableAttendance";
-import { AllClassConfigs, getCurrentYearMonthString } from "../_lib/configForAttendanceLogic"; // Assuming you have a file that exports all class configurations
+import { AllClassConfigs, getCurrentYearMonthString, ClassShiftConfigs } from "../_lib/configForAttendanceLogic"; // Assuming you have a file that exports all class configurations
 
 const getTodayDateString = (): string => {
   const today = new Date();
@@ -38,7 +38,7 @@ export default function CheckAttendancePage() {
   const [availableClasses, setAvailableClasses] = useState<MultiSelectOption[]>([]);
   const [loadingClasses, setLoadingClasses] = useState<boolean>(true); // To show loading state for class dropdown
 
-  //const [students, setStudents] = useState<Student[]>([]);
+  const [students, setStudents] = useState<Student[]>([]);
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
   const [studentStatuses, setStudentStatuses] = useState<DailyStudentStatus[]>([]);
   const [loading, setLoading] = useState(false);
@@ -64,6 +64,9 @@ export default function CheckAttendancePage() {
     setLoadingClasses(true);
     try {
       const classesCollectionRef = collection(db, "classes");
+   //    const studentsCol = collection(db, "students") as CollectionReference<DocumentData>;
+   //   const attendanceCol = collection(db, "attendance") as CollectionReference<DocumentData>;
+   //   const classesCol = collection(db, "classes") as CollectionReference<DocumentData>;
       // Optionally order them, e.g., by name
       const q = query(classesCollectionRef, orderBy("name"));
       const querySnapshot = await getDocs(q);
@@ -84,123 +87,115 @@ export default function CheckAttendancePage() {
   fetchClasses();
 }, [showFeedback]); 
 
+// Inside CheckAttendancePage component in app/dashboard/check/page.tsx
+
   const fetchAttendanceData = useCallback(async () => {
     setLoading(true);
     setError(null);
-    setStudentStatuses([]);
-  
+    setStudentStatuses([]); // Clear previous results
+    setAttendance([]); // Clear previous full attendance list
+
+    const studentsCol = collection(db, "students") as CollectionReference<DocumentData>;
+    const attendanceCol = collection(db, "attendance") as CollectionReference<DocumentData>;
+    // --- 1. Validate Filters ---
     if (!selectedDate) {
       showFeedback('error', "Please select a date.");
       setLoading(false);
       return;
     }
     if (selectedClasses.length === 0 && selectedShifts.length === 0) {
-      showFeedback('info', "Please select at least one class or shift to generate a report.");
+      showFeedback('info', "Please select at least one class or shift.");
       setLoading(false);
       return;
     }
-    // It's okay if no classes or shifts are selected; it means "all" for that filter.
 
     try {
-      // 1. Get all students matching the selected classes and shifts (the roster)
+      // --- 2. Get Roster of Students Based on Filters ---
       let rosterStudents: Student[] = [];
-    if (selectedClasses.length > 0) {
-        
-        let studentQuery = query(collection(db, "students"), where("class", "in", selectedClasses));
-        const studentsSnapshot = await getDocs(studentQuery);
-        rosterStudents = studentsSnapshot.docs.map(docSnap => ({id: docSnap.id, ...docSnap.data()} as Student));
-        if (selectedShifts.length > 0) {
-             rosterStudents = rosterStudents.filter(s => s.shift && selectedShifts.includes(s.shift));
-        }
-    } else if (selectedShifts.length > 0) { // If only shifts are selected
-        const studentsQuery = query(collection(db, "students"), where("shift", "in", selectedShifts));
-        const studentsSnapshot = await getDocs(studentsQuery);
-        rosterStudents = studentsSnapshot.docs.map(docSnap => ({id: docSnap.id, ...docSnap.data()} as Student));
-    }
-      if (selectedClasses.length > 0 && selectedShifts.length > 0) {
-        // Query by class, then filter by shift client-side (or vice-versa)
-        // This could be inefficient if selectedClasses is very broad.
-        // Alternative: If you expect few combinations, make separate queries and merge.
-        // For now, let's fetch all students then filter (less ideal for large student bases but works for ~400)
-        // This example fetches by class then filters by shift on client:
-        const studentsByClassQuery = query(collection(db, "students"), where("class", "in", selectedClasses));
-        const studentsSnapshot = await getDocs(studentsByClassQuery);
-        rosterStudents = studentsSnapshot.docs.map(docSnap => ({id: docSnap.id, ...docSnap.data()} as Student))
-                                         .filter(student => selectedShifts.includes(student.shift || ""));
-      } else if (selectedClasses.length > 0) {
-        const studentsQuery = query(collection(db, "students"), where("class", "in", selectedClasses));
-        const studentsSnapshot = await getDocs(studentsQuery);
-        rosterStudents = studentsSnapshot.docs.map(docSnap => ({id: docSnap.id, ...docSnap.data()} as Student));
-      } else if (selectedShifts.length > 0) {
-        const studentsQuery = query(collection(db, "students"), where("shift", "in", selectedShifts));
-        const studentsSnapshot = await getDocs(studentsQuery);
-        rosterStudents = studentsSnapshot.docs.map(docSnap => ({id: docSnap.id, ...docSnap.data()} as Student));
-      } else {
-        // No class or shift selected, fetch all students (could be large)
-        // For an "absentee" report, you usually need at least a class or shift.
-        // Let's require at least one class OR one shift for this report.
-        showFeedback('info', "Please select at least one class or shift.");
-        setLoading(false);
-        return;
-      }
+      let studentQueryConstraints = [];
 
+      if (selectedClasses.length > 0) {
+        studentQueryConstraints.push(where("class", "in", selectedClasses));
+      }
+      // Note: Firestore does not support multiple 'in' queries on different fields.
+      // This logic queries by class, then filters by shift on the client-side.
+      
+      const studentsQuery = query(collection(db, "students"), ...studentQueryConstraints);
+      const studentsSnapshot = await getDocs(studentsQuery);
+      
+      let fetchedStudents = studentsSnapshot.docs.map(docSnap => ({id: docSnap.id, ...docSnap.data()} as Student));
+      
+      // Client-side filter for shifts if selected
+      if (selectedShifts.length > 0) {
+        rosterStudents = fetchedStudents.filter(s => s.shift && selectedShifts.includes(s.shift));
+      } else {
+        rosterStudents = fetchedStudents;
+      }
+      
       if (rosterStudents.length === 0) {
         showFeedback('info', `No students match the selected class/shift criteria.`);
         setLoading(false);
         return;
       }
 
-      // 2. Get attendance records for the selected date and the rostered students
-      const presentStudentIds = new Set<string>();
-      const presentRecordsMap = new Map<string, any>();
       const rosterStudentIds = rosterStudents.map(s => s.id);
 
-      if (rosterStudentIds.length > 0) {
-        // Batch rosterStudentIds for "in" queries if necessary (max 30 per query)
-        const attendancePromises: Promise<import("firebase/firestore").QuerySnapshot<DocumentData>>[] = [];
-        for (let i = 0; i < rosterStudentIds.length; i += 30) {
-            const studentIdBatch = rosterStudentIds.slice(i, i + 30);
-            if (studentIdBatch.length > 0) {
-                const q = query(collection(db, "attendance"),
-                    where("date", "==", selectedDate),
-                    where("studentId", "in", studentIdBatch)
-                );
-                attendancePromises.push(getDocs(q));
-            }
+      // --- 3. Fetch Broad Range of Attendance for Roster ---
+      const sixtyDaysAgo = new Date();
+      sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+      const sixtyDaysAgoStr = `${sixtyDaysAgo.getFullYear()}-${String(sixtyDaysAgo.getMonth() + 1).padStart(2, '0')}-${String(sixtyDaysAgo.getDate()).padStart(2, '0')}`;
+      
+      const attendancePromises = [];
+      const attendanceCol = collection(db, "attendance") as CollectionReference<DocumentData>;
+      
+      // Batch student IDs for 'in' query (max 30 per query)
+      for (let i = 0; i < rosterStudentIds.length; i += 30) {
+        const studentIdBatch = rosterStudentIds.slice(i, i + 30);
+        if (studentIdBatch.length > 0) {
+          const q = query(attendanceCol,
+              where("studentId", "in", studentIdBatch),
+              where("date", ">=", sixtyDaysAgoStr) // Fetch last 60 days of records
+          );
+          attendancePromises.push(getDocs(q));
         }
-        const snapshots = await Promise.all(attendancePromises);
-        snapshots.forEach(snapshot => {
-            snapshot.docs.forEach(docSnap => {
-                const data = docSnap.data();
-                presentStudentIds.add(data.studentId);
-                presentRecordsMap.set(data.studentId, data);
-            });
-        });
       }
+      
+      const attendanceSnapshots = await Promise.all(attendancePromises);
+      const allFetchedAttendanceForRoster: AttendanceRecord[] = [];
+      attendanceSnapshots.forEach(snapshot => {
+        snapshot.docs.forEach(docSnap => {
+          const data = docSnap.data();
+          allFetchedAttendanceForRoster.push({ id: docSnap.id, ...data } as AttendanceRecord);
+        });
+      });
 
-      // 3. Determine status for each student in the roster
-        let dailyStatusesResult = rosterStudents.map(student => {
-        const attendanceRecord = presentRecordsMap.get(student.id); // presentRecordsMap now contains full attendance docs
+      // Update the main 'attendance' state so it's available for the details modal
+      setAttendance(allFetchedAttendanceForRoster);
+
+      // --- 4. Determine Status for the selectedDate using the fetched data ---
+      const attendanceForSelectedDateMap = new Map<string, any>();
+      allFetchedAttendanceForRoster
+          .filter(att => att.date === selectedDate) // Filter for the specific date for this report
+          .forEach(att => attendanceForSelectedDateMap.set(att.studentId, att));
+      
+      let dailyStatusesResult = rosterStudents.map(student => {
+        const attendanceRecord = attendanceForSelectedDateMap.get(student.id);
         let status: "Present" | "Late" | "Absent" | "Unknown" = "Absent"; // Default to Absent
 
-        if (attendanceRecord) { // If a record exists for the student on that day
-            if (attendanceRecord.status === "late") {
-            status = "Late";
-            } else if (attendanceRecord.status === "present") {
-            status = "Present";
-            } else {
-            status = "Unknown"; // Or handle other statuses from DB if any
-            }
+        if (attendanceRecord) {
+            if (attendanceRecord.status === "late") status = "Late";
+            else if (attendanceRecord.status === "present") status = "Present";
+            else status = "Unknown";
         }
-
         return {
             ...student,
             attendanceDate: selectedDate,
             attendanceStatus: status,
             actualTimestamp: attendanceRecord?.timestamp,
         } as DailyStudentStatus;
-        });
+      });
 
+      // --- 5. Apply Name Search and Finalize State ---
       if (searchName.trim() !== "") {
         dailyStatusesResult = dailyStatusesResult.filter(record =>
           record.fullName.toLowerCase().includes(searchName.toLowerCase())
@@ -227,8 +222,23 @@ export default function CheckAttendancePage() {
     // The `statusEntry` object from the table IS the student object with added properties.
     // We can use it directly.
     const studentDetail: Student = statusEntry;
+    
+    console.log("Opening details for:", studentDetail.fullName);
+    console.log(isDetailModalActive);
 
-    console.log("Opening details for:", studentDetail.fullName,attendance );
+    //Start Debugging
+        // --- START OF DEBUGGING ---
+    console.log("--- Opening Details Modal ---");
+    console.log("For Student:", studentDetail.fullName, `(ID: ${studentDetail.id})`);
+    
+    // Log the entire attendance array to see what we're filtering through
+    console.log(`Filtering through ${attendance.length} total attendance records...`);
+    // Log the first record to check its structure, especially the 'studentId' field
+    //setAttendance(attendanceCol); // Ensure attendance state is set before filtering
+    if (attendance.length > 0) {
+      console.log("Sample record from 'attendance' state:", attendance[0]);
+    }
+    //End
 
     setStudentForDetailModal(studentDetail);
 
@@ -238,9 +248,11 @@ export default function CheckAttendancePage() {
       att => att.studentId === studentDetail.id
     );
 
-    setAttendanceForDetailModal(studentSpecificAttendance);
+    console.log(`Result: Found ${studentSpecificAttendance.length} attendance records for this student.`);
+    if (studentSpecificAttendance.length === 0) {
+      console.log("This is why the modal is empty. Check if the student ID exists in the full attendance list shown above.");
+    }    setAttendanceForDetailModal(studentSpecificAttendance);
     setIsDetailModalActive(true); // Open the modal
-    console.log(isDetailModalActive, studentSpecificAttendance, allClassConfigs);
 
   }, [attendance]);
 

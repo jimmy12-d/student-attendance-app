@@ -13,6 +13,7 @@ export type MenuAsideItem = {
   color?: ColorButtonKey;
   isLogout?: boolean;
   menu?: MenuAsideItem[];
+  onClick?: (item: MenuAsideItem) => void;
 };
 
 export type MenuNavBarItem = {
@@ -58,19 +59,7 @@ export type TrendType =
   | "warning"
   | "info";
 
-export type TransactionType = "withdraw" | "deposit" | "invoice" | "payment";
-
-export type Transaction = {
-  id: number;
-  amount: number;
-  account: string;
-  name: string;
-  date: string;
-  type: TransactionType;
-  business: string;
-};
-
-export type Client = {
+export type WarningStudent = {
   id: number;
   login: string;
   name: string;

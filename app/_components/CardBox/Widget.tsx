@@ -34,7 +34,7 @@ const CardBoxWidget = (props: Props) => {
           <Button icon={mdiCog} color="lightDark" small />
         </div>
       )}
-      <div className="flex items-center justify-between">
+      <div className="py-1 px-3 flex items-center justify-between">
         <div>
           <h3 className="text-lg leading-tight text-gray-500 dark:text-slate-400">
             {props.label}

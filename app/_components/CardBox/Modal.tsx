@@ -13,6 +13,7 @@ type Props = {
   buttonLabel: string;
   isActive: boolean;
   children: ReactNode;
+  modalClassName?: string;
   onConfirm: () => void;
   onCancel?: () => void;
 };
@@ -23,6 +24,7 @@ const CardBoxModal = ({
   buttonLabel,
   isActive,
   children,
+  modalClassName = "w-11/12 md:w-3/5 lg:w-2/5 xl:w-4/12", // <-- DEFAULT WIDTHS
   onConfirm,
   onCancel,
 }: Props) => {
@@ -56,7 +58,7 @@ const CardBoxModal = ({
       className={onCancel ? "cursor-pointer" : ""}
     >
       <CardBox
-        className={`transition-transform shadow-lg max-h-modal w-11/12 md:w-3/5 lg:w-2/5 xl:w-4/12 z-50`}
+        className={`transition-transform shadow-lg max-h-modal ${modalClassName} z-50`}
         isModal
         footer={footer}
       >
@@ -72,7 +74,7 @@ const CardBoxModal = ({
           )}
         </CardBoxComponentTitle>
 
-        <div className="space-y-3">{children}</div>
+        <div className="space-y-3 pl-4">{children}</div>
       </CardBox>
     </OverlayLayer>
   );

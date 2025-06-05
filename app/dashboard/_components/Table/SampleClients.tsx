@@ -2,14 +2,14 @@
 
 import { mdiEye, mdiTrashCan } from "@mdi/js";
 import React, { useState } from "react";
-import { Client } from "../../../_interfaces";
+import { WarningStudent } from "../../../_interfaces";
 import Button from "../../../_components/Button";
 import Buttons from "../../../_components/Buttons";
 import CardBoxModal from "../../../_components/CardBox/Modal";
 import UserAvatar from "../UserAvatar";
 
 type Props = {
-  clients: Client[];
+  clients: WarningStudent[];
 };
 
 const TableSampleClients = ({ clients }: Props) => {
@@ -80,7 +80,7 @@ const TableSampleClients = ({ clients }: Props) => {
           </tr>
         </thead>
         <tbody>
-          {clientsPaginated.map((client: Client) => (
+          {clientsPaginated.map((client: WarningStudent) => (
             <tr key={client.id}>
               <td className="border-b-0 lg:w-6 before:hidden">
                 <UserAvatar

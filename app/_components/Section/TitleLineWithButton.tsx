@@ -33,7 +33,7 @@ export default function SectionTitleLineWithButton({
         </h1>
       </div>
       {children}
-      {!hasChildren && <Button icon={mdiCog} color="whiteDark" />}
+      {/* {!hasChildren && <Button icon={mdiCog} color="whiteDark" />} */}
     </section>
   );
 }

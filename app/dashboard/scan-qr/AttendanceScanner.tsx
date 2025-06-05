@@ -6,14 +6,14 @@ import { db } from '../../../firebase-config';
 import { collection, addDoc, query, where, getDocs, serverTimestamp, doc, getDoc, Timestamp } from 'firebase/firestore';
 import { Student } from '../../_interfaces';
 import CardBox from "../../_components/CardBox";
+import { STANDARD_ON_TIME_GRACE_MINUTES } from '../_lib/configForAttendanceLogic';
+import { LATE_WINDOW_DURATION_MINUTES } from '../_lib/configForAttendanceLogic';
 
 const VIDEO_ELEMENT_CONTAINER_ID = "qr-video-reader-container";
 const SCAN_COOLDOWN_MS = 3000;
 const FEEDBACK_DISPLAY_MS = 3000;
 
 // --- Global Timing Rules ---
-const STANDARD_ON_TIME_GRACE_MINUTES = 15;
-const LATE_WINDOW_DURATION_MINUTES = 90; // Duration of the 'late' window AFTER on-time grace ends
 
 interface ShiftTimeWindows {
   onTimeEnd: string;   // Scan before or at this time is "Present (On-Time)"
@@ -148,7 +148,7 @@ const AttendanceScanner: React.FC = () => {
         showFeedback('error', `Student ID [${studentIdToProcess}] not found.`);
         return;
       }
-      const studentData = { id: studentSnap.id, ...studentSnap.data() } as Student;
+      const studentData = { id: studentSnap.id, ...studentSnap.data() } as Student & { gracePeriodMinutes?: number | null };
       setScannedStudentInfo(`${studentData.fullName} (Class: ${studentData.class || 'N/A'})`);
 
       const currentTime = new Date();
@@ -197,20 +197,16 @@ const AttendanceScanner: React.FC = () => {
 
    // FOR NOW: Use STANDARD_ON_TIME_GRACE_MINUTES.
    // LATER (Step 3 of overall plan), this will be: edit here to use student-specific grace period
-   // const studentSpecificGraceMinutes = studentData.gracePeriodMinutes ?? STANDARD_ON_TIME_GRACE_MINUTES;
-   const studentSpecificGraceMinutes = STANDARD_ON_TIME_GRACE_MINUTES;
-
+   const studentSpecificGraceMinutes = 
+    (typeof studentData.gracePeriodMinutes === 'number' && !isNaN(studentData.gracePeriodMinutes))
+    ? studentData.gracePeriodMinutes 
+    : STANDARD_ON_TIME_GRACE_MINUTES;
+  
    const onTimeDeadline = new Date(shiftStartTimeDate);
-   onTimeDeadline.setMinutes(shiftStartTimeDate.getMinutes() + studentSpecificGraceMinutes);
+   onTimeDeadline.setMinutes(shiftStartTimeDate.getMinutes() + studentSpecificGraceMinutes); // Use the determined grace
 
-   const absoluteLateDeadline = new Date(onTimeDeadline); // Late window starts after on-time grace
+   const absoluteLateDeadline = new Date(onTimeDeadline);
    absoluteLateDeadline.setMinutes(onTimeDeadline.getMinutes() + LATE_WINDOW_DURATION_MINUTES);
-
-   console.log(`[STATUS LOGIC] Shift Start Time: ${shiftStartTimeDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit'})}`);
-   console.log(`[STATUS LOGIC] Student's On-Time Deadline (incl. ${studentSpecificGraceMinutes}m grace): ${onTimeDeadline.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit'})}`);
-   console.log(`[STATUS LOGIC] Absolute Late Deadline (incl. further ${LATE_WINDOW_DURATION_MINUTES}m late window): ${absoluteLateDeadline.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit'})}`);
-   console.log(`[STATUS LOGIC] Current Scan Time: ${currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit'})}`);
-
       if (currentTime <= onTimeDeadline) {
         attendanceStatus = "present";
       } else if (currentTime > onTimeDeadline && currentTime <= absoluteLateDeadline) {
@@ -403,7 +399,7 @@ const handleStopScan = () => {
 
 
   return (
-    <CardBox className="mx-auto max-w-xl">
+    <CardBox className="mx-auto max-w-3xl p-6 bg-gray-800 shadow-lg rounded-lg">
       <h2 className="text-2xl md:text-3xl font-bold mb-6 text-center text-white-800">
         Scan Student QR
       </h2>
@@ -453,3 +449,5 @@ const handleStopScan = () => {
 };
 
 export default AttendanceScanner;
+export { STANDARD_ON_TIME_GRACE_MINUTES, LATE_WINDOW_DURATION_MINUTES };
+export type { AllClassConfigs };

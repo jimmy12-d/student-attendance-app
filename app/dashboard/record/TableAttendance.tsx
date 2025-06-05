@@ -10,6 +10,7 @@ import { mdiTrashCan } from "@mdi/js";
 export interface AttendanceRecord {
   id: string; // Firestore document ID
   studentName: string;
+  studentId: string;
   class?: string;
   shift?: string;
   status: string; // e.g., "present"

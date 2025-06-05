@@ -140,7 +140,7 @@ const TableManageGracePeriods: React.FC<Props> = ({
                     )}
                 </span>
                 </td>
-                <td data-label="Set Grace Period">
+                <td data-label="Set Late Period">
                   {editingStudentId === student.id ? (
                     <div className="flex items-center space-x-1 sm:space-x-2">
                       <select

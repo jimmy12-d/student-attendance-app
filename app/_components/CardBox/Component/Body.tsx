@@ -12,7 +12,7 @@ export default function CardBoxComponentBody({
   children,
 }: Props) {
   return (
-    <div className={`flex-1 ${noPadding ? "" : "p-6"} ${className}`}>
+    <div className={`flex-1 ${noPadding ? "" : "p-2"} ${className}`}>
       {children}
     </div>
   );

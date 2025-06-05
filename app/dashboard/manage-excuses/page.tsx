@@ -79,7 +79,7 @@ export default function ManageGracePeriodsPage() { // Renamed for clarity
                                             // To explicitly remove, use deleteField() from "firebase/firestore"
       });
 
-      setFeedback(`Grace period updated for student.`);
+      setFeedback(`Late period updated for student.`);
       // Refresh local student data to show the update immediately
       setStudents(prevStudents =>
         prevStudents.map(s =>
@@ -136,18 +136,7 @@ export default function ManageGracePeriodsPage() { // Renamed for clarity
         />
       </SectionTitleLineWithButton>
 
-      {error && (
-        <NotificationBar color="danger" icon={mdiAccountClockOutline} className="mb-4">
-          {error}
-        </NotificationBar>
-      )}
-      {feedback && (
-        <NotificationBar color="success" icon={mdiAccountClockOutline} className="mb-4">
-          {feedback}
-        </NotificationBar>
-      )}
-
-      <CardBox className="mb-6 pl-2 rounded-lg shadow">
+      <CardBox className="mb-6 px-4 py-2 pb-2 rounded-lg shadow">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
           <FormField label="Search by Student Name" labelFor="searchNameInputManage">
             {(fd) => (

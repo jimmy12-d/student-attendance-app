@@ -27,7 +27,7 @@ const FormField = ({ children, ...props }: Props) => {
   };
 
   return (
-    <div className="mb-6 last:mb-0">
+    <div className="mb-2 last:mb-0">
       {props.label && (
         <FieldLabel htmlFor={props.labelFor}>{props.label}</FieldLabel>
       )}

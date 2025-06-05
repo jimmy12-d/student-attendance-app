@@ -5,6 +5,7 @@ import { Timestamp } from "firebase/firestore";
 import Button from "../../_components/Button"; // Adjust path as needed
 import Buttons from "../../_components/Buttons"; // Adjust path as needed
 import { Student } from "../../_interfaces"; // Assuming Student interface is in _interfaces
+import { mdiEye } from "@mdi/js";
 
 // Interface for the data this table will display
 export interface DailyStudentStatus extends Student {
@@ -16,6 +17,7 @@ export interface DailyStudentStatus extends Student {
 type Props = {
   statuses: DailyStudentStatus[]; // Array of student statuses
   perPage?: number;
+  onViewDetails: (studentStatus: DailyStudentStatus) => void;
 };
 
 // Function to format date (can be moved to a utils file if used elsewhere)
@@ -48,7 +50,7 @@ const formatDateToDDMMYYYY = (dateInput: string | Date | Timestamp | undefined):
   return `${day}-${month}-${year}`;
 };
 
-const TableDailyStatus: React.FC<Props> = ({ statuses, perPage = 10 }) => {
+const TableDailyStatus: React.FC<Props> = ({ statuses, perPage = 10, onViewDetails }) => {
   const [currentPage, setCurrentPage] = useState(0);
 
   const statusesPaginated = statuses.slice(
@@ -74,6 +76,7 @@ const TableDailyStatus: React.FC<Props> = ({ statuses, perPage = 10 }) => {
               <th>Date</th>
               <th>Status</th>
               <th>Time</th>
+              <th>Details</th>
             </tr>
           </thead>
           <tbody>
@@ -103,6 +106,15 @@ const TableDailyStatus: React.FC<Props> = ({ statuses, perPage = 10 }) => {
                         ? statusEntry.actualTimestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })
                         : 'N/A')
                     : 'N/A'}
+                </td>
+                <td className="before:hidden lg:w-1 whitespace-nowrap text-center"> {/* Added text-center */}
+                  <Button
+                    icon={mdiEye}
+                    onClick={() => onViewDetails(statusEntry)} // Call the handler with student's status entry
+                    color="info" // Or "lightDark" or any color you prefer
+                    small
+                    outline
+                  />
                 </td>
               </tr>
             ))}

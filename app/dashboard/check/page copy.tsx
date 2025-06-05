@@ -227,8 +227,10 @@ export default function CheckAttendancePage() {
     // The `statusEntry` object from the table IS the student object with added properties.
     // We can use it directly.
     const studentDetail: Student = statusEntry;
-
-    console.log("Opening details for:", studentDetail.fullName,attendance );
+    const configs: AllClassConfigs = {};
+    setAllClassConfigs(configs);
+    console.log("Opening details for:", studentDetail.fullName);
+   
 
     setStudentForDetailModal(studentDetail);
 
@@ -240,7 +242,6 @@ export default function CheckAttendancePage() {
 
     setAttendanceForDetailModal(studentSpecificAttendance);
     setIsDetailModalActive(true); // Open the modal
-    console.log(isDetailModalActive, studentSpecificAttendance, allClassConfigs);
 
   }, [attendance]);
 

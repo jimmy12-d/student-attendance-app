@@ -7,7 +7,7 @@ type Props = {
 
 const CardBoxComponentTitle = ({ title, children }: Props) => {
   return (
-    <div className="flex items-center justify-between mb-3">
+    <div className="flex items-center justify-between mb-3 pl-4">
       <h1 className="text-2xl">{title}</h1>
       {children}
     </div>

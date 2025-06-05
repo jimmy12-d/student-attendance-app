@@ -8,6 +8,7 @@ import CardBox from "../../_components/CardBox";
 import CardBoxModal from "../../_components/CardBox/Modal"; // Import Modal
 import NotificationBar from "../../_components/NotificationBar";
 import TableAttendance, { AttendanceRecord } from "./TableAttendance";
+import { Student } from "../../_interfaces"; // Import your Student interface
 
 import { db } from "../../../firebase-config";
 import { collection, getDocs, query, orderBy, Timestamp, doc, deleteDoc } from "firebase/firestore"; // Added doc, deleteDoc
@@ -25,17 +26,25 @@ export default function AttendanceRecordPage() {
     setLoading(true);
     setError(null);
     try {
+      // 1. Fetch all student data first and create a map for easy lookup
+      const studentsSnapshot = await getDocs(collection(db, "students"));
+      const studentsMap = new Map<string, Student>();
+      studentsSnapshot.forEach(docSnap => {
+        studentsMap.set(docSnap.id, { id: docSnap.id, ...docSnap.data() } as Student);
+      });
       const recordsQuery = query(
         collection(db, "attendance"),
         orderBy("date", "desc"),
         orderBy("timestamp", "desc")
       );
-      const querySnapshot = await getDocs(recordsQuery);
-      const recordsData = querySnapshot.docs.map(docSnap => {
+      const attendanceSnapshot = await getDocs(recordsQuery);
+      const recordsData = attendanceSnapshot.docs.map(docSnap => {
         const data = docSnap.data();
+        const student = studentsMap.get(data.studentId); // Get current student details
+
         return {
           id: docSnap.id,
-          studentName: data.studentName || 'N/A',
+          studentName: student ? student.fullName : (data.studentName || 'Unknown Student'),
           class: data.class,
           shift: data.shift,
           status: data.status || 'Unknown',
