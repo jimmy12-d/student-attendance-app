@@ -1,6 +1,4 @@
-import { mdiCog } from "@mdi/js";
-import React, { Children, ReactNode } from "react";
-import Button from "../Button";
+import React, { ReactNode } from "react";
 import Icon from "../Icon";
 import IconRounded from "../Icon/Rounded";
 
@@ -17,7 +15,6 @@ export default function SectionTitleLineWithButton({
   main = false,
   children,
 }: Props) {
-  const hasChildren = !!Children.count(children);
 
   return (
     <section

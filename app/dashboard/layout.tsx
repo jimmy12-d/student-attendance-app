@@ -5,7 +5,7 @@ import React, { ReactNode, useState, useEffect } from "react"; // Added useEffec
 import { useRouter, usePathname } from "next/navigation"; // For redirection and current path
 
 // Firebase Authentication
-import { onAuthStateChanged, User as FirebaseUser } from "firebase/auth";
+import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../../firebase-config"; // Adjust path to your firebase-config.js
 
 // Redux

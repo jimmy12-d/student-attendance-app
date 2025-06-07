@@ -2,14 +2,12 @@
 "use client";
 
 import React, { useState } from "react";
-import FormField from "../../_components/FormField"; // Verify path
 import Button from "../../_components/Button"; // Verify path
 import Buttons from "../../_components/Buttons"; // Verify path
 import { useRouter } from "next/navigation"; // For redirection
-import Link from "next/link";
 
 // Firebase imports for Google Sign-In
-import { GoogleAuthProvider, signInWithPopup, signOut, User as FirebaseUser } from "firebase/auth"; // Added signOut
+import { GoogleAuthProvider, signInWithPopup, signOut } from "firebase/auth"; // Added signOut
 import { auth, db } from "../../../firebase-config"; // Adjust path, ensure db is exported from firebase-config
 import { doc, getDoc } from "firebase/firestore"; // For checking authorization
 

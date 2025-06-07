@@ -5,7 +5,6 @@ import React, { useEffect, useState, useMemo } from "react"; // Ensure useMemo i
 import { Student } from "../../_interfaces";
 import { Timestamp } from "firebase/firestore";
 import CardBoxModal from "../../_components/CardBox/Modal";
-import { cambodianHolidaysSet } from "../_lib/configForAttendanceLogic"; // Or from attendanceUtils
 import { isSchoolDay as checkIsSchoolDay} from "../_lib/attendanceLogic";
 import {
   AllClassConfigs,
@@ -167,7 +166,7 @@ const DailyStatusDetailsModal: React.FC<Props> = ({
       currentDate.setHours(0,0,0,0);
       const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(dayCounter).padStart(2, '0')}`;
         // Initialize cellData
-      let cellData: CalendarCell = {
+      const cellData: CalendarCell = {
         dayOfMonth: dayCounter,
         fullDateStr: dateStr,
         isSchoolDayCell: false, // Will be determined below
@@ -276,7 +275,7 @@ const DailyStatusDetailsModal: React.FC<Props> = ({
     return "Details"; // Fallback
     }, [modalSelectedMonth]);
 
-    const { isPrevDisabled, isNextDisabled } = useMemo(() => {
+    const { isPrevDisabled } = useMemo(() => {
         const now = new Date();
         const currentActualYear = now.getFullYear();
         const currentActualMonthIndex = now.getMonth(); // 0-indexed

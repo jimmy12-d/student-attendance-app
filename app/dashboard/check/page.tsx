@@ -13,7 +13,7 @@ import TableDailyStatus, { DailyStudentStatus } from "./TableDailyStatus"; // Or
 import DailyStatusDetailsModal from "../_components/DailyStatusDetailsModal"; // Adjust path as needed
 import { Student } from "../../_interfaces";
 import { db } from "../../../firebase-config";
-import { collection, getDocs, query, where, orderBy, Timestamp,doc, CollectionReference, DocumentData} from "firebase/firestore";
+import { collection, getDocs, query, where, orderBy, CollectionReference, DocumentData} from "firebase/firestore";
 import { AttendanceRecord } from "../record/TableAttendance";
 import { AllClassConfigs, getCurrentYearMonthString, ClassShiftConfigs } from "../_lib/configForAttendanceLogic"; // Assuming you have a file that exports all class configurations
 import { getStudentDailyStatus } from "../_lib/attendanceLogic"; // Assuming you have a utility function to get status
@@ -157,7 +157,7 @@ const showFeedback = useCallback((type: 'error' | 'info', text: string) => {
       let rosterStudents: Student[] = [];
     if (selectedClasses.length > 0) {
         
-        let studentQuery = query(collection(db, "students"), where("class", "in", selectedClasses));
+        const studentQuery = query(collection(db, "students"), where("class", "in", selectedClasses));
         const studentsSnapshot = await getDocs(studentQuery);
         rosterStudents = studentsSnapshot.docs.map(docSnap => ({id: docSnap.id, ...docSnap.data()} as Student));
         if (selectedShifts.length > 0) {
@@ -198,9 +198,6 @@ const showFeedback = useCallback((type: 'error' | 'info', text: string) => {
         return;
       }
 
-      // 2. Get attendance records for the selected date and the rostered students
-      const presentStudentIds = new Set<string>();
-      const presentRecordsMap = new Map<string, any>();
       const rosterStudentIds = rosterStudents.map(s => s.id);
 
       if (rosterStudentIds.length > 0) {
@@ -427,7 +424,7 @@ useEffect(() => {
                 No students found for the selected criteria, or no attendance data to compare.
              </NotificationBar>
         ) : (
-           <NotificationBar color="info">Please select a date and at least one class or shift, then click "Check Status".</NotificationBar>
+           <NotificationBar color="info">Please select a date and at least one class or shift, then click Check Status.</NotificationBar>
         )}
       </CardBox>
         {isDetailModalActive && studentForDetailModal && allClassConfigs && (

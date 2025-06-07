@@ -1,6 +1,4 @@
 // app/dashboard/_lib/attendanceUtils.ts
-import { Timestamp } from "firebase/firestore"; // Keep this if other utils use it
-
 export const STANDARD_ON_TIME_GRACE_MINUTES = 15;
 export const LATE_WINDOW_DURATION_MINUTES = 90;
 
@@ -17,7 +15,7 @@ export const cambodianHolidaysSet = new Set([
 ]);
 
 export const getMonthDetails = (year: number, month: number) => { // month is 0-indexed
-  const startDateObj = new Date(year, month, 1);
+  
   const endDateObj = new Date(year, month + 1, 0); // Last day of the month
   const today = new Date();
 

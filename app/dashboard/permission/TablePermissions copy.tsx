@@ -26,7 +26,7 @@ const formatTimestampToDayMonth = (timestamp: Timestamp | undefined): string => 
     };
 
 const TablePermissions: React.FC<Props> = ({ permissions, onUpdateRequest }) => {
-  const [currentPage, setCurrentPage] = useState(0);
+  const [currentPage] = useState(0);
   const perPage = 10;
   const permissionsPaginated = permissions.slice(perPage * currentPage, perPage * (currentPage + 1));
 

@@ -8,8 +8,7 @@ import { StudentAttendanceWarning } from "../page"; // Import from dashboard pag
 import { Student } from "../../_interfaces"; // To pass student data to modal
 import { AllClassConfigs } from "../_lib/configForAttendanceLogic"; // Import this
 import DailyStatusDetailsModal from "./DailyStatusDetailsModal"; // We will create this new component
-import { mdiAlertCircleOutline, mdiEye } from "@mdi/js";
-import Button from "../../_components/Button"; // Add this import, adjust path if needed
+import { mdiEye } from "@mdi/js";
 
 interface Props {
   warning: StudentAttendanceWarning;

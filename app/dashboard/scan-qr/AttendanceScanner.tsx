@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { Html5Qrcode, Html5QrcodeCameraScanConfig } from 'html5-qrcode';
 import { db } from '../../../firebase-config';
-import { collection, addDoc, query, where, getDocs, serverTimestamp, doc, getDoc, Timestamp } from 'firebase/firestore';
+import { collection, addDoc, query, where, getDocs, serverTimestamp, doc, getDoc } from 'firebase/firestore';
 import { Student } from '../../_interfaces';
 import CardBox from "../../_components/CardBox";
 import { STANDARD_ON_TIME_GRACE_MINUTES } from '../_lib/configForAttendanceLogic';
@@ -12,14 +12,6 @@ import { LATE_WINDOW_DURATION_MINUTES } from '../_lib/configForAttendanceLogic';
 const VIDEO_ELEMENT_CONTAINER_ID = "qr-video-reader-container";
 const SCAN_COOLDOWN_MS = 3000;
 const FEEDBACK_DISPLAY_MS = 3000;
-
-// --- Global Timing Rules ---
-
-interface ShiftTimeWindows {
-  onTimeEnd: string;   // Scan before or at this time is "Present (On-Time)"
-  lateEnd: string;     // Scan after onTimeEnd but before or at this time is "Late"
-                       // Scans after lateEnd might be considered "Very Late" or "Absent" by policy,
-}
 
 const lateMessages = [
   "Fashionably late, I see!",
@@ -247,7 +239,20 @@ const AttendanceScanner: React.FC = () => {
     }
   }, [playSuccessSound, showFeedback, allClassConfigs, loadingClassConfigs]); // Dependencies
 
-  const onScanFailure = useCallback((errorMessage: string) => { /* ... */ }, []);
+    const onScanFailure = useCallback((errorMessage: string) => {
+      if (
+        errorMessage.includes("QR code not found") || 
+        errorMessage.includes("notFound") ||
+        errorMessage.includes("No QR code found")
+      ) {
+        // This is expected during normal operation. Do nothing.
+        return;
+      }
+      
+      // Log other, potentially more significant errors for debugging purposes.
+      console.warn(`QR Scan Failure: ${errorMessage}`);
+      
+    }, []); 
 
   const initializeScanner = useCallback(async () => { // Make it async
     if (!videoContainerRef.current) {

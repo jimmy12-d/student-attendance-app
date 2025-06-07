@@ -2,7 +2,6 @@ import {
   mdiAccountCircle,
   mdiMonitor,
   mdiClipboardListOutline,
-  mdiSearchWeb,
   mdiMagnify,
   mdiAccountClockOutline,
   mdiFileDocumentCheckOutline

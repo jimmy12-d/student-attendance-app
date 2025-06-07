@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { mdiFileDocumentCheckOutline, mdiPlus } from "@mdi/js";
+import { mdiFileDocumentCheckOutline } from "@mdi/js";
 import SectionMain from "../../_components/Section/Main";
 import SectionTitleLineWithButton from "../../_components/Section/TitleLineWithButton";
 import CardBox from "../../_components/CardBox";
@@ -10,7 +10,6 @@ import TablePermissions from "./TablePermissions";
 import { db } from "../../../firebase-config";
 import { collection, getDocs, query, orderBy, doc, updateDoc, CollectionReference, DocumentData } from "firebase/firestore";
 import { PermissionRecord, Student } from "../../_interfaces"; // Import Student
-import Button from "../../_components/Button";
 import NotificationBar from "../../_components/NotificationBar";
 // ... (import AddPermissionForm if you have it)
 

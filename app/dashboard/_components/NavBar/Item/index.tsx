@@ -3,11 +3,8 @@
 import React from "react";
 import Link from "next/link";
 import { useState } from "react";
-import { mdiChevronUp, mdiChevronDown } from "@mdi/js";
 import Divider from "../../../../_components/Divider";
 import Icon from "../../../../_components/Icon";
-import UserAvatarCurrentUser from "../../UserAvatar/CurrentUser";
-import NavBarMenuList from "../MenuList";
 import { useAppDispatch, useAppSelector } from "../../../../_stores/hooks";
 import { MenuNavBarItem } from "../../../../_interfaces";
 import { setDarkMode } from "../../../../_stores/darkModeSlice";

@@ -1,7 +1,7 @@
 // app/dashboard/permissions/_components/TablePermissions.tsx
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import { Timestamp } from "firebase/firestore"; // Ensure Timestamp is imported
 import { PermissionRecord } from "../../_interfaces"; // Or your correct path
 import Button from "../../_components/Button";

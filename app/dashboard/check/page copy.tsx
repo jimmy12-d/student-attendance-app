@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { mdiMagnify, mdiReload, mdiClipboardListOutline } from "@mdi/js";
+import { mdiMagnify, mdiClipboardListOutline } from "@mdi/js";
 import SectionMain from "../../_components/Section/Main";
 import SectionTitleLineWithButton from "../../_components/Section/TitleLineWithButton";
 import CardBox from "../../_components/CardBox";
@@ -13,11 +13,9 @@ import TableDailyStatus, { DailyStudentStatus } from "./TableDailyStatus"; // Or
 import DailyStatusDetailsModal from "../_components/DailyStatusDetailsModal"; // Adjust path as needed
 import { Student } from "../../_interfaces";
 import { db } from "../../../firebase-config";
-import { collection, getDocs, query, where, orderBy, Timestamp,doc, CollectionReference, DocumentData} from "firebase/firestore";
+import { collection, getDocs, query, where, orderBy, DocumentData} from "firebase/firestore";
 import { AttendanceRecord } from "../record/TableAttendance";
 import { AllClassConfigs, getCurrentYearMonthString, ClassShiftConfigs } from "../_lib/configForAttendanceLogic"; // Assuming you have a file that exports all class configurations
-import { config } from "process";
-import { getStudentDailyStatus } from "../_lib/attendanceLogic"; // Assuming you have a utility function to get status
 
 const getTodayDateString = (): string => {
   const today = new Date();
@@ -125,10 +123,7 @@ export default function CheckAttendancePage() {
     setError(null);
     setStudentStatuses([]);
     setAttendance([]);
-
-    const studentsCol = collection(db, "students") as CollectionReference<DocumentData>;
-    const attendanceCol = collection(db, "attendance") as CollectionReference<DocumentData>;
-  
+ 
     if (!selectedDate) {
       showFeedback('error', "Please select a date.");
       setLoading(false);
@@ -146,7 +141,7 @@ export default function CheckAttendancePage() {
       let rosterStudents: Student[] = [];
     if (selectedClasses.length > 0) {
         
-        let studentQuery = query(collection(db, "students"), where("class", "in", selectedClasses));
+        const studentQuery = query(collection(db, "students"), where("class", "in", selectedClasses));
         const studentsSnapshot = await getDocs(studentQuery);
         rosterStudents = studentsSnapshot.docs.map(docSnap => ({id: docSnap.id, ...docSnap.data()} as Student));
         if (selectedShifts.length > 0) {
@@ -187,9 +182,6 @@ export default function CheckAttendancePage() {
         return;
       }
 
-      // 2. Get attendance records for the selected date and the rostered students
-      const presentStudentIds = new Set<string>();
-      const presentRecordsMap = new Map<string, any>();
       const rosterStudentIds = rosterStudents.map(s => s.id);
 
       if (rosterStudentIds.length > 0) {
@@ -358,7 +350,7 @@ export default function CheckAttendancePage() {
                 No students found for the selected criteria, or no attendance data to compare.
              </NotificationBar>
         ) : (
-           <NotificationBar color="info">Please select a date and at least one class or shift, then click "Check Status".</NotificationBar>
+           <NotificationBar color="info">Please select a date and at least one class or shift, then click Check Status.</NotificationBar>
         )}
       </CardBox>
         {isDetailModalActive && studentForDetailModal && allClassConfigs && (

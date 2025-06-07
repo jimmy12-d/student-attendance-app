@@ -62,7 +62,7 @@ function YourPageComponentToSeedData() { // Renamed to avoid conflict if on dash
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-4">Admin Data Seeding</h1>
-      <p className="mb-2">This tool will populate your 'classes' collection with predefined start times and study days.</p>
+      <p className="mb-2">This tool will populate your class collection with predefined start times and study days.</p>
       <Button
         label="Seed Class Data to Firestore (with Study Days)"
         color="danger"
@@ -70,7 +70,7 @@ function YourPageComponentToSeedData() { // Renamed to avoid conflict if on dash
         className="my-4"
       />
       <p className="text-xs text-gray-500">
-        Warning: Clicking this button will create/overwrite documents in your 'classes' collection. Use with caution and typically only once.
+        Warning: Clicking this button will create/overwrite documents in your class collection. Use with caution and typically only once.
       </p>
     </div>
   );

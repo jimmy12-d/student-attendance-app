@@ -172,7 +172,7 @@ const CustomMultiSelectDropdown: React.FC<Props> = ({
             ))}
             {/* Message for when search yields no results but there are original options */}
             {options.length > 0 && filteredOptions.length === 0 && searchTerm && (
-                <li className="px-4 py-2 text-sm text-gray-500 dark:text-gray-400">No options match "{searchTerm}"</li>
+                <li className="px-4 py-2 text-sm text-gray-500 dark:text-gray-400">No options match{searchTerm}</li>
             )}
             {/* Message for when there are no options at all */}
              {options.length === 0 && (

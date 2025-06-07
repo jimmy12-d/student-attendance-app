@@ -3,7 +3,6 @@ import { Timestamp } from "firebase/firestore";
 import { Student } from "../../_interfaces"; // Adjust path as needed
 import { 
     AllClassConfigs, 
-    ClassConfigData,
     LATE_WINDOW_DURATION_MINUTES,
     cambodianHolidaysSet
 } from "./configForAttendanceLogic"; // Import shared configs

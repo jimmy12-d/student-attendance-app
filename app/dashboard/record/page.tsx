@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { mdiClipboardListOutline, mdiTrashCan } from "@mdi/js"; // Added mdiTrashCan for modal if needed
+import { mdiClipboardListOutline } from "@mdi/js"; // Added mdiTrashCan for modal if needed
 import SectionMain from "../../_components/Section/Main";
 import SectionTitleLineWithButton from "../../_components/Section/TitleLineWithButton";
 import CardBox from "../../_components/CardBox";

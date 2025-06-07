@@ -1,8 +1,7 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState } from "react";
 import { Student } from "../../_interfaces"; // Adjust path
-import { Timestamp } from "firebase/firestore";
 import { StudentAttendanceWarning } from "../page"; // Assuming defined in dashboard/page.tsx or move to _interfaces
 import SectionTitleLineWithButton from "../../_components/Section/TitleLineWithButton";
 import CardBoxAttendanceWarning from "./CardBoxAttendanceWarning"; // Assuming it's in the same _components folder

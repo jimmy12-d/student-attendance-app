@@ -54,7 +54,7 @@ const TableManageGracePeriods: React.FC<Props> = ({
   };
 
   const handleSaveGracePeriod = async (studentId: string) => {
-    let newGraceMinutes: number | null = parseInt(selectedGraceOption);
+    const newGraceMinutes: number | null = parseInt(selectedGraceOption);
 
     if (isNaN(newGraceMinutes) || newGraceMinutes < 0) { // Basic validation
         alert("Invalid grace period value.");

@@ -267,7 +267,7 @@ export default function DashboardPage() {
       }
       return false; // Shift window closed or no config = Not pending (would be absent if not attended)
     }).length;
-  }, [students, attendance, allClassConfigs, todayStrForWidgets]);
+  }, [students, attendance, allClassConfigs]);
 
   const currentSelectedMonthLabel = useMemo(() => {
     return monthOptions.find(m => m.value === selectedMonth)?.label || selectedMonth;
