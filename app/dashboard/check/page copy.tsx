@@ -243,7 +243,7 @@ export default function CheckAttendancePage() {
       console.log("Fetched student statuses:", dailyStatusesResult);
 
     }
-   } catch (err: any) {
+   } catch (err) {
       console.error("Error fetching attendance data: ", err);
       if (err.code === 'failed-precondition' && err.message.includes('index')) {
         setError(`Query requires a new index. Check console for Firebase link.`);

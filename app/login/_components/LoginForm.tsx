@@ -65,7 +65,7 @@ import { setUser } from "../../_stores/mainSlice"; // Ensure this path and actio
       }
       // **** END OF AUTHORIZATION CHECK ****
 
-    } catch (error: any) {
+    } catch (error) {
       console.error("Google Sign-In Error:", error);
       // Handle specific errors like 'auth/popup-closed-by-user' gracefully
       if (error.code === 'auth/popup-closed-by-user') {

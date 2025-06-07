@@ -6,26 +6,7 @@ import Button from "../../_components/Button"; // Adjust path as needed
 import Buttons from "../../_components/Buttons"; // Adjust path as needed
 import { mdiTrashCan } from "@mdi/js";
 
-// Define an interface for your attendance records
-export interface AttendanceRecord {
-  id: string; // Firestore document ID
-  studentName: string;
-  studentId: string;
-  class?: string;
-  shift?: string;
-  status: string; // e.g., "present"
-  date: string | Date | Timestamp;   // Your primary date field (likely "YYYY-MM-DD" string)
-  timestamp?: Timestamp | Date; // The exact time of marking
-}
-
-type Props = {
-  records: AttendanceRecord[];
-  onDeleteRecord: (record: AttendanceRecord) => void;
-  perPage?: number;
-};
-
-// Function to format the date as dd-mm-yyyy
-    const formatDateToDDMMYYYY = (dateInput: string | Date | Timestamp | undefined): string => {
+const formatDateToDDMMYYYY = (dateInput: string | Date | Timestamp | undefined): string => {
     if (!dateInput) return 'N/A';
     let dateObj: Date;
 
@@ -53,7 +34,26 @@ type Props = {
     const year = dateObj.getFullYear();
 
     return `${day}-${month}-${year}`; // This should produce a plain string like "29-05-2025"
-    };
+  };
+// Define an interface for your attendance records
+export interface AttendanceRecord {
+  id: string; // Firestore document ID
+  studentName: string;
+  studentId: string;
+  class?: string;
+  shift?: string;
+  status: string; // e.g., "present"
+  date: string | Date | Timestamp;   // Your primary date field (likely "YYYY-MM-DD" string)
+  timestamp?: Timestamp | Date; // The exact time of marking
+}
+
+type Props = {
+  records: AttendanceRecord[];
+  onDeleteRecord: (record: AttendanceRecord) => void;
+  perPage?: number;
+};
+
+// Function to format the date as dd-mm-yyyy
 
 const TableAttendance = ({ records, onDeleteRecord, perPage = 10 }: Props) => {
   const [currentPage, setCurrentPage] = useState(0);
@@ -68,8 +68,6 @@ const TableAttendance = ({ records, onDeleteRecord, perPage = 10 }: Props) => {
   for (let i = 0; i < numPages; i++) {
     pagesList.push(i);
   }
-
-  // formatDateForDisplay is removed as formatDateToDDMMYYYY is more specific
 
   return (
     <>

@@ -121,7 +121,7 @@ export default function DashboardPage() {
       setAllClassConfigs(configs);
       setLoadingConfigs(false); // Configs loaded
 
-    } catch (err: any) {
+    } catch (err) {
       console.error("Error fetching dashboard data:", err);
       setError("Failed to load dashboard data.");
       if (err.code === 'failed-precondition' && err.message.includes('index')) {

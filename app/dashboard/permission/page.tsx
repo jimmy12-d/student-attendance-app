@@ -58,7 +58,7 @@ export default function ManagePermissionsPage() {
       });
 
       setPermissions(enrichedPerms);
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
       if (err.code === 'permission-denied') {
         setError("Permission Denied. Check Firestore security rules for 'permissions' and 'students' collections.");

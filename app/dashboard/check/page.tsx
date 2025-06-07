@@ -137,9 +137,6 @@ const showFeedback = useCallback((type: 'error' | 'info', text: string) => {
     setStudentStatuses([]);
     setAttendance([]);
 
-    const studentsCol = collection(db, "students") as CollectionReference<DocumentData>;
-    const attendanceCol = collection(db, "attendance") as CollectionReference<DocumentData>;
-  
     if (!selectedDate) {
       showFeedback('error', "Please select a date.");
       setLoading(false);

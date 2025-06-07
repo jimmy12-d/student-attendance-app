@@ -233,7 +233,7 @@ const AttendanceScanner: React.FC = () => {
         showFeedback('success', `${studentData.fullName} marked present!`);
       }
 
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error processing attendance:", error);
       showFeedback('error', `Error processing: ${error.message || 'Unknown error'}`);
     }
