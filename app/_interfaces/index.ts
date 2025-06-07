@@ -83,3 +83,17 @@ export interface Student {
   shift: string;
   createdAt?: Timestamp | Date; // Firestore timestamp or Date object
 }
+
+export interface PermissionRecord {
+  id: string; // Firestore document ID
+  studentId: string;
+  studentName: string;
+  permissionStartDate: string; // "YYYY-MM-DD"
+  permissionEndDate: string;   // "YYYY-MM-DD"
+  reason: string;
+  details?: string;
+  status: 'pending' | 'approved' | 'rejected';
+  requestDate: Timestamp;
+  reviewedBy?: string;
+  reviewedAt?: Timestamp;
+}

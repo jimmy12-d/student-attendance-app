@@ -1,19 +1,11 @@
 import {
   mdiAccountCircle,
   mdiMonitor,
-  mdiGithub,
-  mdiLock,
-  mdiAlertCircle,
-  mdiSquareEditOutline,
-  mdiTable,
-  mdiViewList,
-  mdiTelevisionGuide,
-  mdiResponsive,
-  mdiPalette,
   mdiClipboardListOutline,
   mdiSearchWeb,
   mdiMagnify,
-  mdiAccountClockOutline
+  mdiAccountClockOutline,
+  mdiFileDocumentCheckOutline
 } from "@mdi/js";
 import { MenuAsideItem } from "../../_interfaces";
 
@@ -44,10 +36,16 @@ const menuAside: MenuAsideItem[] = [
     icon: mdiMagnify, // Choose an appropriate icon
   },
   {
+    href: "/dashboard/permission", // Path to your new page
+    label: "Permission",
+    icon: mdiFileDocumentCheckOutline, // Choose an appropriate icon
+  },
+  {
     href: "/dashboard/manage-excuses", // Path to your new page
     label: "Late Permission",
     icon: mdiAccountClockOutline, // Choose an appropriate icon
   },
+
 ];
 
 export default menuAside;

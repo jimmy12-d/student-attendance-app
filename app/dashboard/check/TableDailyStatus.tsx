@@ -10,7 +10,7 @@ import { mdiEye } from "@mdi/js";
 // Interface for the data this table will display
 export interface DailyStudentStatus extends Student {
   attendanceDate: string; // The date for which the status is being shown
-  attendanceStatus: "Present" | "Late" | "Absent" | "Unknown";
+  attendanceStatus: "Present" | "Late" | "Absent" | "Pending" | "Permission" |"Unknown";
   actualTimestamp?: Timestamp | Date; // Timestamp of actual check-in if present
 }
 
@@ -93,6 +93,8 @@ const TableDailyStatus: React.FC<Props> = ({ statuses, perPage = 10, onViewDetai
                     statusEntry.attendanceStatus === 'Present' ? 'bg-green-200 text-green-800' :
                     statusEntry.attendanceStatus === 'Late' ? 'bg-yellow-100 text-yellow-800 border border-yellow-300' :
                     statusEntry.attendanceStatus === 'Absent' ? 'bg-red-200 text-red-800' :
+                    statusEntry.attendanceStatus === 'Pending' ? 'bg-blue-200 text-blue-800' :
+                    statusEntry.attendanceStatus === 'Permission' ? 'bg-purple-200 text-purple-800' :
                     'bg-gray-100 text-gray-800' // For "Unknown" or other statuses
                   }`}>
                     {statusEntry.attendanceStatus}

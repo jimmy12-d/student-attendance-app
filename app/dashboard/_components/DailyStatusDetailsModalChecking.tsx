@@ -9,6 +9,7 @@ import { cambodianHolidaysSet } from "../_lib/configForAttendanceLogic"; // Or f
 import { isSchoolDay as checkIsSchoolDay} from "../_lib/attendanceLogic";
 import {
   AllClassConfigs,
+  STANDARD_ON_TIME_GRACE_MINUTES,
   LATE_WINDOW_DURATION_MINUTES,
   getCurrentYearMonthString, // Assuming you moved this to config or utils
 } from "../_lib/configForAttendanceLogic"; // Or your utils path
@@ -43,7 +44,7 @@ interface Props {
 
 const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-const DailyStatusDetailsModal: React.FC<Props> = ({
+const DailyStatusDetailsModalChecking: React.FC<Props> = ({
   student,
   attendanceRecords,
   allClassConfigs,
@@ -206,8 +207,9 @@ const DailyStatusDetailsModal: React.FC<Props> = ({
                 const [startHour, startMinute] = currentShiftConfig.startTime.split(':').map(Number);
                 const shiftStartTimeForToday = new Date(todayForComparison);
                 shiftStartTimeForToday.setHours(startHour, startMinute,0,0);
+                const studentGrace = (student as any).gracePeriodMinutes ?? STANDARD_ON_TIME_GRACE_MINUTES;
                 const onTimeDeadlineForToday = new Date(shiftStartTimeForToday);
-                onTimeDeadlineForToday.setMinutes(shiftStartTimeForToday.getMinutes());
+                onTimeDeadlineForToday.setMinutes(shiftStartTimeForToday.getMinutes() + studentGrace);
                 const lateCutOffForToday = new Date(onTimeDeadlineForToday);
                 lateCutOffForToday.setMinutes(onTimeDeadlineForToday.getMinutes() + LATE_WINDOW_DURATION_MINUTES);
                 const now = new Date();
@@ -471,4 +473,4 @@ const DailyStatusDetailsModal: React.FC<Props> = ({
   );
 };
 
-export default DailyStatusDetailsModal;
+export default DailyStatusDetailsModalChecking;

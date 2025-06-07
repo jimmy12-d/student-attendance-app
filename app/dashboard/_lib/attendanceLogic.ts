@@ -4,7 +4,6 @@ import { Student } from "../../_interfaces"; // Adjust path as needed
 import { 
     AllClassConfigs, 
     ClassConfigData,
-    STANDARD_ON_TIME_GRACE_MINUTES, 
     LATE_WINDOW_DURATION_MINUTES,
     cambodianHolidaysSet
 } from "./configForAttendanceLogic"; // Import shared configs
@@ -17,6 +16,12 @@ interface RawAttendanceRecord {
   timestamp?: Timestamp;
   class?: string;
   shift?: string;
+}
+
+// Interface for the return value of our new function
+export interface CalculatedStatus {
+  status?: "Present" | "Late" | "Absent" | "No School" | "Not Yet Enrolled" | "Pending" | "Unknown" | "Absent (Config Missing)" | "Permission";
+  time?: string;
 }
 
 export const isSchoolDay = (
@@ -122,10 +127,8 @@ export const calculateConsecutiveAbsences = (
           const shiftStartTimeForToday = new Date(todayDateObj);
           shiftStartTimeForToday.setHours(startHour, startMinute);
 
-          const studentGrace = (student as any).gracePeriodMinutes ?? STANDARD_ON_TIME_GRACE_MINUTES;
-
           const onTimeDeadlineForToday = new Date(shiftStartTimeForToday);
-          onTimeDeadlineForToday.setMinutes(shiftStartTimeForToday.getMinutes() + studentGrace);
+          onTimeDeadlineForToday.setMinutes(shiftStartTimeForToday.getMinutes());
 
           const lateCutOffForToday = new Date(onTimeDeadlineForToday);
           lateCutOffForToday.setMinutes(onTimeDeadlineForToday.getMinutes() + LATE_WINDOW_DURATION_MINUTES);
@@ -313,4 +316,80 @@ export const calculateMonthlyAbsencesLogic = (
   }
   
   return { count: absentCount, details: `${absentCount} absences in ${monthLabel}` };
+};
+
+export const getStudentDailyStatus = (
+    student: Student,
+    checkDateStr: string, // The date we are checking, in "YYYY-MM-DD" format
+    attendanceRecord: RawAttendanceRecord | undefined, // The record for that student on that day, if it exists
+    allClassConfigs: AllClassConfigs | null
+): CalculatedStatus => {
+    
+    const checkDate = new Date(checkDateStr);
+    const today = new Date();
+    // Normalize dates to start of day for accurate comparison
+    checkDate.setHours(0,0,0,0);
+    today.setHours(0,0,0,0);
+
+    const studentCreatedAt = student.createdAt instanceof Timestamp
+      ? student.createdAt.toDate()
+      : student.createdAt instanceof Date ? student.createdAt : null;
+    if (studentCreatedAt) studentCreatedAt.setHours(0,0,0,0);
+
+    // Get class-specific study days
+    const studentClassKey = student.class;
+    const classConfig = studentClassKey && allClassConfigs ? allClassConfigs[studentClassKey] : undefined;
+    const classStudyDays = classConfig?.studyDays;
+
+    // --- Start Status Logic ---
+    if (studentCreatedAt && checkDate < studentCreatedAt) {
+      return { status: "Not Yet Enrolled" };
+    }
+    if (!isSchoolDay(checkDate, classStudyDays)) {
+      if ( checkDate < today) {
+        return { status: "No School" };
+      }
+    }
+
+    // At this point, it IS a school day for this student.
+    if (attendanceRecord) { // An attendance record exists
+        const status = attendanceRecord.status === 'present' ? "Present" :
+                       attendanceRecord.status === 'late'   ? "Late"    : "Unknown";
+        let time;
+        if (attendanceRecord.timestamp) {
+            const recordTime = attendanceRecord.timestamp instanceof Timestamp 
+                                ? attendanceRecord.timestamp.toDate() 
+                                : attendanceRecord.timestamp as Date;
+            time = recordTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+        }
+        return { status, time };
+    } else { // No attendance record for this school day
+        if (checkDate.getTime() === today.getTime()) { // If this school day IS TODAY
+            const studentShiftKey = student.shift;
+            const shiftConfig = (studentClassKey && classConfig?.shifts) ? classConfig.shifts[studentShiftKey] : undefined;
+
+            if (shiftConfig && shiftConfig.startTime) {
+                const [startHour, startMinute] = shiftConfig.startTime.split(':').map(Number);
+                const shiftStartTimeForToday = new Date(today);
+                shiftStartTimeForToday.setHours(startHour, startMinute);
+                
+                const onTimeDeadlineForToday = new Date(shiftStartTimeForToday);
+                onTimeDeadlineForToday.setMinutes(shiftStartTimeForToday.getMinutes());
+                const lateCutOffForToday = new Date(onTimeDeadlineForToday);
+                lateCutOffForToday.setMinutes(onTimeDeadlineForToday.getMinutes() + LATE_WINDOW_DURATION_MINUTES);
+                
+                if (new Date() > lateCutOffForToday) {
+                  return { status: "Absent" }; // Window closed, no record = Absent
+                } else {
+                  return { status: "Pending" }; // Window still open, not yet absent
+                }
+            } else {
+                return { status: "Absent (Config Missing)" }; // No shift config
+            }
+        } else if (checkDate < today) { // Past school day with no record
+            return { status: "Absent" };
+        } else { // Future school day
+            return { status: undefined }; // No status for future days
+        }
+    }
 };
