@@ -5,7 +5,7 @@ import React, { useEffect, useState, useMemo } from "react"; // Ensure useMemo i
 import { Student } from "../../_interfaces";
 import { Timestamp } from "firebase/firestore";
 import CardBoxModal from "../../_components/CardBox/Modal";
-import { isSchoolDay as checkIsSchoolDay} from "../_lib/attendanceLogic";
+import { isSchoolDay as checkIsSchoolDay, RawAttendanceRecord} from "../_lib/attendanceLogic";
 import {
   AllClassConfigs,
   LATE_WINDOW_DURATION_MINUTES,
@@ -33,7 +33,7 @@ interface CalendarCell {
 
 interface Props {
   student: Student;
-  attendanceRecords: any[];
+  attendanceRecords: RawAttendanceRecord[];
   allClassConfigs: AllClassConfigs;
   isActive: boolean;
   onClose: () => void;

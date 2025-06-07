@@ -9,11 +9,12 @@ import { Student } from "../../_interfaces"; // To pass student data to modal
 import { AllClassConfigs } from "../_lib/configForAttendanceLogic"; // Import this
 import DailyStatusDetailsModal from "./DailyStatusDetailsModal"; // We will create this new component
 import { mdiEye } from "@mdi/js";
+import { RawAttendanceRecord } from "../_lib/attendanceLogic"; // Import this for attendance records
 
 interface Props {
   warning: StudentAttendanceWarning;
   student: Student; // Pass the full student object
-  allAttendanceRecordsForStudent: any[]; // Pass attendance specific to this student
+  allAttendanceRecordsForStudent: RawAttendanceRecord[]; // Pass attendance specific to this student
   allClassConfigs: AllClassConfigs | null;
 }
 

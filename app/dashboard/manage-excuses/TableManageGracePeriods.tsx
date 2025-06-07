@@ -9,7 +9,7 @@ import { mdiContentSaveEditOutline, mdiCloseCircleOutline } from "@mdi/js"; // I
 
 // Extend Student interface for this table's specific needs
 export interface StudentWithGracePeriod extends Student {
-  gracePeriodMinutes?: number | null; // Grace period in minutes from their Firestore doc
+  gracePeriodMinutes?: number; // Grace period in minutes from their Firestore doc
 }
 
 type Props = {
@@ -68,7 +68,8 @@ const TableManageGracePeriods: React.FC<Props> = ({
     setLoadingStateForStudent(studentId, true); // Optional: for per-row loading
     try {
       await onUpdateGracePeriod(studentId, newGraceMinutes);
-    } catch (e) {
+    } catch (error) {
+      console.error("Failed to update grace period:", error);
       // Handle error (e.g., show notification)
     } finally {
       setLoadingStateForStudent(studentId, false); // Optional

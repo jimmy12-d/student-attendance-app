@@ -7,12 +7,12 @@ import SectionTitleLineWithButton from "../../_components/Section/TitleLineWithB
 import CardBoxAttendanceWarning from "./CardBoxAttendanceWarning"; // Assuming it's in the same _components folder
 import NotificationBar from "../../_components/NotificationBar";
 import { mdiAlertOctagonOutline } from "@mdi/js";
-import { getMonthDetailsForLogic, calculateMonthlyAbsencesLogic } from "../_lib/attendanceLogic";
+import { getMonthDetailsForLogic, calculateMonthlyAbsencesLogic, RawAttendanceRecord } from "../_lib/attendanceLogic";
 import { AllClassConfigs } from "../_lib/configForAttendanceLogic";
 
 interface Props {
   students: Student[];
-  attendanceRecords: any[];
+  attendanceRecords: RawAttendanceRecord[];
   selectedMonthValue: string; // e.g., "2025-06"
   selectedMonthLabel: string; // <--- NEW PROP (e.g., "June 2025")
   allClassConfigs: AllClassConfigs | null;

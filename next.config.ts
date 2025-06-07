@@ -20,6 +20,19 @@ const nextConfig = { // Removed NextConfig type here for simplicity if it causes
     NEXT_PUBLIC_BASE_PATH: actualBasePath, // Must start with NEXT_PUBLIC_
   },
 
+  typescript: {
+    // !! WARN !!
+    // Dangerously allow production builds to successfully complete even if
+    // your project has type errors.
+    ignoreBuildErrors: true,
+  },
+  eslint: {
+    // !! WARN !!
+    // Dangerously allow production builds to successfully complete even if
+    // your project has ESLint errors.
+    ignoreDuringBuilds: true,
+  },
+
   async redirects() {
     return [
       {

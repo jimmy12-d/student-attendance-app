@@ -13,7 +13,6 @@ type Props = {
   onUpdateRequest: (permissionId: string, newStatus: 'approved' | 'rejected') => void;
 };
 
-// VVVV ADD A HELPER FUNCTION TO FORMAT TIMESTAMPS VVVV
 const formatTimestampToDayMonth = (timestamp: Timestamp | undefined): string => {
   if (!timestamp) {
     return 'N/A';

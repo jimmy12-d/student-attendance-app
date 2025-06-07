@@ -5,7 +5,7 @@ import React, { useEffect, useState, useMemo } from "react"; // Ensure useMemo i
 import { Student } from "../../_interfaces";
 import { Timestamp } from "firebase/firestore";
 import CardBoxModal from "../../_components/CardBox/Modal";
-import { isSchoolDay as checkIsSchoolDay} from "../_lib/attendanceLogic";
+import { isSchoolDay as checkIsSchoolDay, RawAttendanceRecord} from "../_lib/attendanceLogic";
 import {
   AllClassConfigs,
   STANDARD_ON_TIME_GRACE_MINUTES,
@@ -34,7 +34,7 @@ interface CalendarCell {
 
 interface Props {
   student: Student;
-  attendanceRecords: any[];
+  attendanceRecords: RawAttendanceRecord[];
   allClassConfigs: AllClassConfigs;
   isActive: boolean;
   onClose: () => void;
@@ -206,7 +206,7 @@ const DailyStatusDetailsModalChecking: React.FC<Props> = ({
                 const [startHour, startMinute] = currentShiftConfig.startTime.split(':').map(Number);
                 const shiftStartTimeForToday = new Date(todayForComparison);
                 shiftStartTimeForToday.setHours(startHour, startMinute,0,0);
-                const studentGrace = (student as any).gracePeriodMinutes ?? STANDARD_ON_TIME_GRACE_MINUTES;
+                const studentGrace = (student as Student).gracePeriodMinutes ?? STANDARD_ON_TIME_GRACE_MINUTES;
                 const onTimeDeadlineForToday = new Date(shiftStartTimeForToday);
                 onTimeDeadlineForToday.setMinutes(shiftStartTimeForToday.getMinutes() + studentGrace);
                 const lateCutOffForToday = new Date(onTimeDeadlineForToday);

@@ -8,7 +8,7 @@ import {
 } from "./configForAttendanceLogic"; // Import shared configs
 
 // Interface for raw attendance data structure from Firestore
-interface RawAttendanceRecord {
+export interface RawAttendanceRecord {
   studentId: string;
   date: string; // YYYY-MM-DD
   status: 'present' | 'late' | string; // Allow other statuses if any
@@ -240,7 +240,6 @@ export const calculateMonthlyAbsencesLogic = (
         }
     });
 
-  let applicableSchoolDays = 0;
   const absentSchoolDayStringsInMonth: string[] = [];
 
   const todayDateObj = new Date(); // For checking if checkDate is "today"
@@ -256,7 +255,6 @@ export const calculateMonthlyAbsencesLogic = (
     const classStudyDays = classConfig?.studyDays;
     if (isSchoolDay(currentDateInLoop, classStudyDays)) { // Check if this is a school day for the student's class
       if (!studentCreatedAt || studentCreatedAt < currentDateInLoop) { // Applicable day for student
-        applicableSchoolDays++;
         
         let isConfirmedAbsentThisDay = false;
         if (currentDateInLoop.getTime() === todayDateObj.getTime()) { // Is the day being checked "today"?

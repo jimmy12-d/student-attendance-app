@@ -25,7 +25,7 @@ import ConsecutiveAbsencesSection from "./_components/ConsecutiveAbsencesSection
 
 // Import utils
 import { AllClassConfigs, ClassShiftConfigs, getCurrentYearMonthString,LATE_WINDOW_DURATION_MINUTES } from "./_lib/configForAttendanceLogic";
-import { isSchoolDay } from "./_lib/attendanceLogic";
+import { isSchoolDay, RawAttendanceRecord } from "./_lib/attendanceLogic";
 
 // Interface for processed student warning data - can move to _interfaces or attendanceUtils
 export interface StudentAttendanceWarning {
@@ -40,7 +40,7 @@ export interface StudentAttendanceWarning {
 
 export default function DashboardPage() {
   const [students, setStudents] = useState<Student[]>([]);
-  const [attendance, setAttendance] = useState<any[]>([]); // Raw attendance records for a relevant period
+  const [attendance, setAttendance] = useState<RawAttendanceRecord[]>([]); // Raw attendance records for a relevant period
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 

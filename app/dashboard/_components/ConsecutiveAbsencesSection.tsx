@@ -11,11 +11,11 @@ import CardBoxAttendanceWarning from "./CardBoxAttendanceWarning";
 import NotificationBar from "../../_components/NotificationBar";
 import { mdiCalendarRemoveOutline } from "@mdi/js";
 // Import the calculation function
-import { calculateConsecutiveAbsences } from "../_lib/attendanceLogic";
+import { calculateConsecutiveAbsences, RawAttendanceRecord } from "../_lib/attendanceLogic";
 
 interface Props {
   students: Student[];
-  attendanceRecords: any[]; // Raw attendance records (e.g., last 60-90 days)
+  attendanceRecords: RawAttendanceRecord[]; // Raw attendance records (e.g., last 60-90 days)
   allClassConfigs: AllClassConfigs | null;
 }
 

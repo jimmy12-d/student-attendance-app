@@ -13,7 +13,7 @@ import TableDailyStatus, { DailyStudentStatus } from "./TableDailyStatus"; // Or
 import DailyStatusDetailsModal from "../_components/DailyStatusDetailsModal"; // Adjust path as needed
 import { Student } from "../../_interfaces";
 import { db } from "../../../firebase-config";
-import { collection, getDocs, query, where, orderBy, CollectionReference, DocumentData} from "firebase/firestore";
+import { collection, getDocs, query, where, orderBy, DocumentData} from "firebase/firestore";
 import { AttendanceRecord } from "../record/TableAttendance";
 import { AllClassConfigs, getCurrentYearMonthString, ClassShiftConfigs } from "../_lib/configForAttendanceLogic"; // Assuming you have a file that exports all class configurations
 import { getStudentDailyStatus } from "../_lib/attendanceLogic"; // Assuming you have a utility function to get status
@@ -48,7 +48,7 @@ export default function CheckAttendancePage() {
 
   const shiftList = ["Morning", "Afternoon", "Evening"]; // Your 3 shifts
   const shiftOptions: MultiSelectOption[] = shiftList.map(s => ({ value: s, label: s }));
-  const [selectedMonth, setSelectedMonth] = useState<string>(getCurrentYearMonthString()); // Defined here
+  const [selectedMonth] = useState<string>(getCurrentYearMonthString()); // Defined here
   const [isDetailModalActive, setIsDetailModalActive] = useState(false);
   const [studentForDetailModal, setStudentForDetailModal] = useState<Student | null>(null);
   const [attendanceForDetailModal, setAttendanceForDetailModal] = useState<any[]>([]);
@@ -257,7 +257,7 @@ const showFeedback = useCallback((type: 'error' | 'info', text: string) => {
       }
       setStudentStatuses(dailyStatusesResult);
     }
-   } catch (err: any) {
+   } catch (err) {
       console.error("Error fetching attendance data: ", err);
       if (err.code === 'failed-precondition' && err.message.includes('index')) {
         setError(`Query requires a new index. Check console for Firebase link.`);

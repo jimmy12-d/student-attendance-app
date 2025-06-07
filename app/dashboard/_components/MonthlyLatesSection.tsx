@@ -2,18 +2,18 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Student } from "../../_interfaces";
+import { Student} from "../../_interfaces";
 import { StudentAttendanceWarning, AllClassConfigs } from "../_lib/configForAttendanceLogic"; // Import from shared config
 import SectionTitleLineWithButton from "../../_components/Section/TitleLineWithButton";
 import CardBoxAttendanceWarning from "./CardBoxAttendanceWarning";
 import NotificationBar from "../../_components/NotificationBar";
 import { mdiClockAlertOutline } from "@mdi/js";
 // Import the calculation function
-import { calculateMonthlyLates, getMonthDetailsForLogic } from "../_lib/attendanceLogic";
+import { calculateMonthlyLates, getMonthDetailsForLogic, RawAttendanceRecord } from "../_lib/attendanceLogic";
 
 interface Props {
   students: Student[];
-  attendanceRecords: any[];
+  attendanceRecords: RawAttendanceRecord[];
   selectedMonthValue: string;   // "YYYY-MM"
   selectedMonthLabel: string;
   allClassConfigs: AllClassConfigs | null;

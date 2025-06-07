@@ -82,6 +82,7 @@ export interface Student {
   class: string;
   shift: string;
   createdAt?: Timestamp | Date; // Firestore timestamp or Date object
+  gracePeriodMinutes?: number; // Optional, as it wasn't in the display list
 }
 
 export interface PermissionRecord {
