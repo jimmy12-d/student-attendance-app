@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
-import { mdiMagnify, mdiChevronLeft, mdiChevronRight, mdiClipboardListOutline } from "@mdi/js";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { mdiMagnify, mdiReload, mdiClipboardListOutline, mdiChevronLeft, mdiChevronRight } from "@mdi/js";
 import SectionMain from "../../_components/Section/Main";
 import SectionTitleLineWithButton from "../../_components/Section/TitleLineWithButton";
 import CardBox from "../../_components/CardBox";
@@ -9,14 +9,14 @@ import NotificationBar from "../../_components/NotificationBar";
 import Button from "../../_components/Button";
 import FormField from "../../_components/FormField";
 import CustomMultiSelectDropdown, { MultiSelectOption } from "../_components/CustomMultiSelectDropdown"; 
-import TableDailyStatus, { DailyStudentStatus } from "./TableDailyStatus"; // Or "../record/TableDailyStatus"
-import DailyStatusDetailsModal from "../_components/DailyStatusDetailsModal"; // Adjust path as needed
-import { Student } from "../../_interfaces";
+import TableDailyStatus, { DailyStudentStatus } from "./TableDailyStatus";
+import DailyStatusDetailsModal from "../_components/DailyStatusDetailsModal";
+import { Student, PermissionRecord } from "../../_interfaces";
+import { RawAttendanceRecord } from "../_lib/attendanceLogic";
 import { db } from "../../../firebase-config";
-import { collection, getDocs, query, where, orderBy, DocumentData} from "firebase/firestore";
-import { AttendanceRecord } from "../record/TableAttendance";
-import { AllClassConfigs, getCurrentYearMonthString, ClassShiftConfigs } from "../_lib/configForAttendanceLogic"; // Assuming you have a file that exports all class configurations
-import { getStudentDailyStatus } from "../_lib/attendanceLogic"; // Assuming you have a utility function to get status
+import { collection, getDocs, query, where, orderBy, Timestamp, CollectionReference, DocumentData, QuerySnapshot } from "firebase/firestore";
+import { AllClassConfigs, getCurrentYearMonthString, ClassShiftConfigs } from "../_lib/configForAttendanceLogic";
+import { getStudentDailyStatus } from "../_lib/attendanceLogic";
 
 const getTodayDateString = (): string => {
   const today = new Date();
@@ -29,113 +29,71 @@ const getTodayDateString = (): string => {
 const FEEDBACK_DISPLAY_MS = 3000;
 
 export default function CheckAttendancePage() {
+  // Filter States
   const [selectedDate, setSelectedDate] = useState<string>(getTodayDateString());
-  
-  // MODIFIED: State for multi-select
   const [selectedClasses, setSelectedClasses] = useState<string[]>([]);
   const [selectedShifts, setSelectedShifts] = useState<string[]>([]);
   const [searchName, setSearchName] = useState<string>("");
 
+  // Data & UI States
   const [availableClasses, setAvailableClasses] = useState<MultiSelectOption[]>([]);
-  const [loadingClasses, setLoadingClasses] = useState<boolean>(true); // To show loading state for class dropdown
-
-  //const [students, setStudents] = useState<Student[]>([]);
-  const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
+  const [allClassConfigs, setAllClassConfigs] = useState<AllClassConfigs | null>(null);
+  const [attendance, setAttendance] = useState<RawAttendanceRecord[]>([]);
+  const [permissions, setPermissions] = useState<PermissionRecord[]>([]);
   const [studentStatuses, setStudentStatuses] = useState<DailyStudentStatus[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingClasses, setLoadingClasses] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [info, setInfo] = useState<string | null>(null); 
-
-  const shiftList = ["Morning", "Afternoon", "Evening"]; // Your 3 shifts
-  const shiftOptions: MultiSelectOption[] = shiftList.map(s => ({ value: s, label: s }));
-  const [selectedMonth] = useState<string>(getCurrentYearMonthString()); // Defined here
+  
+  // Modal States
   const [isDetailModalActive, setIsDetailModalActive] = useState(false);
   const [studentForDetailModal, setStudentForDetailModal] = useState<Student | null>(null);
-  const [attendanceForDetailModal, setAttendanceForDetailModal] = useState<any[]>([]);
-  const [allClassConfigs, setAllClassConfigs] = useState<AllClassConfigs | null>(null);
-  useEffect(() => {
-    const fetchAllClassData = async () => {
-     // setLoadingConfigs(true); 
-      
-      try {
-        const classesCollectionRef = collection(db, "classes");
-        // We order by name to ensure a consistent order, which is good practice.
-        // This requires a single-field index on 'name' in your 'classes' collection if you enforce indexes.
-        const q = query(classesCollectionRef, orderBy("name")); 
-        const querySnapshot = await getDocs(q);
+  
+  // Static shift options
+  const shiftOptions: MultiSelectOption[] = ["Morning", "Afternoon", "Evening"].map(s => ({ value: s, label: s }));
 
-        const allClassConfigs: AllClassConfigs = {};
-        if (querySnapshot.empty) {
-          console.warn("No documents found in 'classes' collection.");
-        }
-        
-        querySnapshot.forEach(docSnap => {
-          allClassConfigs[docSnap.id] = docSnap.data() as { name?: string; shifts: ClassShiftConfigs; studyDays?: number[] };
-        });
-        setAllClassConfigs(allClassConfigs);
-
-      } catch (error) {
-        console.error("Failed to fetch class configurations:", error);
-        setError("Critical error: Could not load class time configurations."); // Set an error state
-        setAllClassConfigs({}); // Set to empty object on error
-      } finally {
-        // This block executes regardless of success or failure
-       // setLoadingConfigs(false);
-      }
-    };
-
-    fetchAllClassData();
-  }, []);
- 
-//   const showFeedback = useCallback((type: 'error' | 'info', text: string) => {
-//   // The if(type === 'error') check is fine. The info check is what caused the dependency.
-//   // We can just call setError directly for both.
-//   setError(text);
-//   setTimeout(() => setError(null), FEEDBACK_DISPLAY_MS + 2000);
-// }, []);
-
-const showFeedback = useCallback((type: 'error' | 'info', text: string) => {
-  if (type === 'error') {
+  const showFeedback = useCallback((type: 'error' | 'info', text: string) => {
     setError(text);
     setTimeout(() => setError(null), FEEDBACK_DISPLAY_MS + 2000);
-  }
-  if (type === 'info') {
-    setInfo(text); // Use the new info state
-    setTimeout(() => setInfo(null), FEEDBACK_DISPLAY_MS);
-  }
-}, []); 
+  }, []);
 
-
+  // Effect to fetch initial, non-changing data (class list and configs)
   useEffect(() => {
-  const fetchClasses = async () => {
-    setLoadingClasses(true);
-    try {
-      const classesCollectionRef = collection(db, "classes");
-      // Optionally order them, e.g., by name
-      const q = query(classesCollectionRef, orderBy("name"));
-      const querySnapshot = await getDocs(q);
-      const fetchedClasses = querySnapshot.docs.map(doc => ({
-        value: doc.data().name as string, // Assuming your documents have a 'name' field
-        label: doc.data().name as string,
-      }));
-      setAvailableClasses(fetchedClasses);
-    } catch (error) {
-      console.error("Error fetching classes: ", error);
-      // Use your existing showFeedback or setError for user feedback
-      showFeedback('error', 'Failed to load class list.');
-      setAvailableClasses([]); // Set to empty array on error
-    }
-    setLoadingClasses(false);
-  };
+    const fetchInitialData = async () => {
+      setLoadingClasses(true);
+      try {
+        const classesCol = collection(db, "classes") as CollectionReference<DocumentData>;
+        const q = query(classesCol, orderBy("name"));
+        const querySnapshot = await getDocs(q);
 
-  fetchClasses();
-}, [showFeedback]); 
+        const fetchedClassesForDropdown: MultiSelectOption[] = [];
+        const fetchedConfigs: AllClassConfigs = {};
 
-  const fetchAttendanceData = useCallback(async () => {
+        querySnapshot.docs.forEach(doc => {
+          const data = doc.data();
+          fetchedClassesForDropdown.push({ value: data.name as string, label: data.name as string });
+          fetchedConfigs[doc.id] = data as any;
+        });
+        
+        setAvailableClasses(fetchedClassesForDropdown);
+        setAllClassConfigs(fetchedConfigs);
+      } catch (error) {
+        console.error("Error fetching initial class data:", error);
+        showFeedback('error', 'Failed to load class list.');
+      }
+      setLoadingClasses(false);
+    };
+    fetchInitialData();
+  }, [showFeedback]);
+
+
+  // Main data fetching function when "Check Status" is clicked
+  const fetchAndProcessData = useCallback(async () => {
     setLoading(true);
     setError(null);
     setStudentStatuses([]);
     setAttendance([]);
+    setPermissions([]);
 
     if (!selectedDate) {
       showFeedback('error', "Please select a date.");
@@ -147,223 +105,156 @@ const showFeedback = useCallback((type: 'error' | 'info', text: string) => {
       setLoading(false);
       return;
     }
-    // It's okay if no classes or shifts are selected; it means "all" for that filter.
 
     try {
-      // 1. Get all students matching the selected classes and shifts (the roster)
-      let rosterStudents: Student[] = [];
-    if (selectedClasses.length > 0) {
-        
-        const studentQuery = query(collection(db, "students"), where("class", "in", selectedClasses));
-        const studentsSnapshot = await getDocs(studentQuery);
-        rosterStudents = studentsSnapshot.docs.map(docSnap => ({id: docSnap.id, ...docSnap.data()} as Student));
-        if (selectedShifts.length > 0) {
-             rosterStudents = rosterStudents.filter(s => s.shift && selectedShifts.includes(s.shift));
-        }
-    } else if (selectedShifts.length > 0) { // If only shifts are selected
-        const studentsQuery = query(collection(db, "students"), where("shift", "in", selectedShifts));
-        const studentsSnapshot = await getDocs(studentsQuery);
-        rosterStudents = studentsSnapshot.docs.map(docSnap => ({id: docSnap.id, ...docSnap.data()} as Student));
-    }
-      if (selectedClasses.length > 0 && selectedShifts.length > 0) {
-        // Query by class, then filter by shift client-side (or vice-versa)
-        // This could be inefficient if selectedClasses is very broad.
-        // Alternative: If you expect few combinations, make separate queries and merge.
-        // For now, let's fetch all students then filter (less ideal for large student bases but works for ~400)
-        // This example fetches by class then filters by shift on client:
-        const studentsByClassQuery = query(collection(db, "students"), where("class", "in", selectedClasses));
-        const studentsSnapshot = await getDocs(studentsByClassQuery);
-        rosterStudents = studentsSnapshot.docs.map(docSnap => ({id: docSnap.id, ...docSnap.data()} as Student))
-                                         .filter(student => selectedShifts.includes(student.shift || ""));
-      } else if (selectedClasses.length > 0) {
-        const studentsQuery = query(collection(db, "students"), where("class", "in", selectedClasses));
-        const studentsSnapshot = await getDocs(studentsQuery);
-        rosterStudents = studentsSnapshot.docs.map(docSnap => ({id: docSnap.id, ...docSnap.data()} as Student));
-      } else if (selectedShifts.length > 0) {
-        const studentsQuery = query(collection(db, "students"), where("shift", "in", selectedShifts));
-        const studentsSnapshot = await getDocs(studentsQuery);
-        rosterStudents = studentsSnapshot.docs.map(docSnap => ({id: docSnap.id, ...docSnap.data()} as Student));
+      const studentsCol = collection(db, "students") as CollectionReference<DocumentData>;
+      const attendanceCol = collection(db, "attendance") as CollectionReference<DocumentData>;
+      const permsCol = collection(db, "permissions") as CollectionReference<DocumentData>;
+
+      // 1. Fetch Students based on filters
+      let studentQueryConstraints: import("firebase/firestore").QueryConstraint[] = [];
+      if (selectedClasses.length > 0) {
+        studentQueryConstraints.push(where("class", "in", selectedClasses));
       } else {
-        showFeedback('info', "Please select at least one class or shift.");
-        setLoading(false);
-        return;
+        studentQueryConstraints.push(where("shift", "in", selectedShifts));
       }
+      const studentsQuery = query(studentsCol, ...studentQueryConstraints);
+      const studentsSnapshot = await getDocs(studentsQuery);
 
+      let fetchedStudents = studentsSnapshot.docs.map(docSnap => ({id: docSnap.id, ...docSnap.data()} as Student));
+      let rosterStudents = (selectedClasses.length > 0 && selectedShifts.length > 0)
+          ? fetchedStudents.filter(s => s.shift && selectedShifts.includes(s.shift))
+          : fetchedStudents;
+      
       if (rosterStudents.length === 0) {
-        showFeedback('info', `No students match the selected class/shift criteria.`);
+        showFeedback('info', `No students match the selected criteria.`);
+        setStudentStatuses([]);
         setLoading(false);
         return;
       }
-
       const rosterStudentIds = rosterStudents.map(s => s.id);
 
+      // 2. Fetch Attendance and Permissions for the roster concurrently
+      let allFetchedAttendance: RawAttendanceRecord[] = [];
+      let allFetchedPermissions: PermissionRecord[] = [];
+
       if (rosterStudentIds.length > 0) {
-        // Batch rosterStudentIds for "in" queries if necessary (max 30 per query)
-        const attendancePromises: Promise<import("firebase/firestore").QuerySnapshot<DocumentData>>[] = [];
         const sixtyDaysAgo = new Date();
         sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
         const sixtyDaysAgoStr = `${sixtyDaysAgo.getFullYear()}-${String(sixtyDaysAgo.getMonth() + 1).padStart(2, '0')}-${String(sixtyDaysAgo.getDate()).padStart(2, '0')}`;
         
+        const attendancePromises: Promise<QuerySnapshot<DocumentData>>[] = [];
+        const permissionsPromises: Promise<QuerySnapshot<DocumentData>>[] = [];
+
         for (let i = 0; i < rosterStudentIds.length; i += 30) {
           const studentIdBatch = rosterStudentIds.slice(i, i + 30);
-          if (studentIdBatch.length > 0) {
-            const q = query(collection(db, "attendance"),
-                where("studentId", "in", studentIdBatch),
-                where("date", ">=", sixtyDaysAgoStr) // Fetch last 60 days
-            );
-            attendancePromises.push(getDocs(q));
-          }
+          const attendanceQuery = query(attendanceCol, where("studentId", "in", studentIdBatch), where("date", ">=", sixtyDaysAgoStr));
+          const permissionsQuery = query(permsCol, where("studentId", "in", studentIdBatch), where("status", "==", "approved"));
+          attendancePromises.push(getDocs(attendanceQuery));
+          permissionsPromises.push(getDocs(permissionsQuery));
         }
-        const attendanceSnapshots = await Promise.all(attendancePromises);
-        const allFetchedAttendanceForRoster: AttendanceRecord[] = [];
-        attendanceSnapshots.forEach(snapshot => {
-          snapshot.docs.forEach(docSnap => {
-            allFetchedAttendanceForRoster.push({ id: docSnap.id, ...docSnap.data() } as AttendanceRecord);
-          });
-        });
-        setAttendance(allFetchedAttendanceForRoster);
 
-    const attendanceForSelectedDateMap = new Map<string, any>();
-    allFetchedAttendanceForRoster
-        .filter(att => att.date === selectedDate)
-        .forEach(att => attendanceForSelectedDateMap.set(att.studentId, att));
+        const [attendanceSnapshots, permsSnapshots] = await Promise.all([
+          Promise.all(attendancePromises),
+          Promise.all(permissionsPromises),
+        ]);
 
-    // --- Determine status for each student in the roster using the logic function ---
-    let dailyStatusesResult = rosterStudents.map(student => {
-      const attendanceRecord = attendanceForSelectedDateMap.get(student.id);
-      
-      // VVVV THIS IS THE CORRECTED LOGIC VVVV
-      // Call the centralized function to get the calculated status and time
-      const calculatedStatus = getStudentDailyStatus(
-          student,
-          selectedDate,      // The date we are checking
-          attendanceRecord,    // The attendance record for that day (or undefined if none)
-          allClassConfigs    // The class configuration data
-      );
-      
-      return {
-          ...student, // Spreads all properties from the student object
-          attendanceDate: selectedDate,
-          attendanceStatus: calculatedStatus.status, // Use the status returned from the function
-          actualTimestamp: attendanceRecord?.timestamp, // Use timestamp from the original record for time display
-      } as DailyStudentStatus;
-      // ^^^^ END OF CORRECTED LOGIC ^^^^
-    });
+        attendanceSnapshots.flat().forEach(snapshot => snapshot.docs.forEach(docSnap => {
+          allFetchedAttendance.push({ id: docSnap.id, studentId: docSnap.data().studentId, ...docSnap.data() } as RawAttendanceRecord);
+        }));
+        setAttendance(allFetchedAttendance);
 
-      if (searchName.trim() !== "") {
-        dailyStatusesResult = dailyStatusesResult.filter(record =>
-          record.fullName.toLowerCase().includes(searchName.toLowerCase())
-        );
+        permsSnapshots.flat().forEach(snapshot => snapshot.docs.forEach(docSnap => {
+          allFetchedPermissions.push({ id: docSnap.id, ...docSnap.data() } as PermissionRecord);
+        }));
+        setPermissions(allFetchedPermissions);
       }
-      setStudentStatuses(dailyStatusesResult);
-    }
-   } catch (err) {
-      console.error("Error fetching attendance data: ", err);
-      if (err.code === 'failed-precondition' && err.message.includes('index')) {
-        setError(`Query requires a new index. Check console for Firebase link.`);
+
+      // 3. Determine daily status for the table
+      const attendanceForSelectedDateMap = new Map<string, any>();
+      allFetchedAttendance.filter(att => att.date === selectedDate).forEach(att => attendanceForSelectedDateMap.set(att.studentId, att));
+
+      const dailyStatusesResult = rosterStudents.map(student => {
+        const attendanceRecord = attendanceForSelectedDateMap.get(student.id);
+        const approvedPermissionsForStudent = allFetchedPermissions.filter(p => p.studentId === student.id);
+        const calculatedStatus = getStudentDailyStatus(student, selectedDate, attendanceRecord, allClassConfigs, approvedPermissionsForStudent);
+        
+        return {
+            ...student,
+            attendanceDate: selectedDate,
+            attendanceStatus: calculatedStatus.status,
+            actualTimestamp: attendanceRecord?.timestamp,
+        } as DailyStudentStatus;
+      });
+
+      const finalResult = searchName.trim() !== ""
+        ? dailyStatusesResult.filter(r => r.fullName.toLowerCase().includes(searchName.toLowerCase()))
+        : dailyStatusesResult;
+
+      setStudentStatuses(finalResult);
+
+    } catch (err) {
+      console.error("Error fetching data:", err);
+      if (err instanceof Error && 'code' in err) {
+        const firebaseError = err as { code: string, message: string };
+        if (firebaseError.code === 'failed-precondition' && firebaseError.message.includes('index')) {
+          setError(`Query requires a new index. Please check the browser console for a link to create it.`);
+        } else {
+          setError("Failed to fetch data. Please try again.");
+        }
       } else {
-        setError("Failed to fetch data. Please try again.");
+        setError("An unknown error occurred.");
       }
     }
     setLoading(false);
-  }, [selectedDate, selectedClasses, selectedShifts, searchName, showFeedback]);
+  }, [selectedDate, selectedClasses, selectedShifts, searchName, showFeedback, allClassConfigs]);
+
 
   const handleSearch = () => {
-    fetchAttendanceData();
+    fetchAndProcessData();
   };
 
   const handleOpenDetailsModal = useCallback((statusEntry: DailyStudentStatus) => {
-    // The `statusEntry` object from the table IS the student object with added properties.
-    // We can use it directly.
     const studentDetail: Student = statusEntry;
-
     setStudentForDetailModal(studentDetail);
-
-    // Filter the main `attendance` state using the student's ID.
-    // Ensure you are using `att.studentId` for comparison.
-    const studentSpecificAttendance = attendance.filter(
-      att => att.studentId === studentDetail.id
-    );
-    
-    setAttendanceForDetailModal(studentSpecificAttendance);
-    setIsDetailModalActive(true); // Open the modal
-
-  }, [attendance]);
+    setIsDetailModalActive(true);
+  }, []);
 
   const handleDateArrowChange = (offset: number) => {
-    // The current selectedDate is a "YYYY-MM-DD" string.
     const parts = selectedDate.split('-').map(part => parseInt(part, 10));
     const currentDate = new Date(parts[0], parts[1] - 1, parts[2]);
-
-    // Add the offset (+1 for next day, -1 for previous day)
     currentDate.setDate(currentDate.getDate() + offset);
-    
     const year = currentDate.getFullYear();
     const month = String(currentDate.getMonth() + 1).padStart(2, '0');
     const day = String(currentDate.getDate()).padStart(2, '0');
-    
-    // This sets the state to the "YYYY-MM-DD" format required by the <input type="date">
     setSelectedDate(`${year}-${month}-${day}`);
   };
 
-//   useEffect(() => {
-//   // Don't fetch on the very first render if filters aren't selected yet.
-//   // You can add a guard if you want.
-//   if ((selectedClasses.length > 0 || selectedShifts.length >0) && !error) {
-//     fetchAttendanceData();
-//   }
-// }, [selectedDate, fetchAttendanceData]);
-
-useEffect(() => {
-  // This effect now runs whenever a relevant filter changes.
-  if (selectedClasses.length > 0 || selectedShifts.length > 0) {
-    fetchAttendanceData();
-  } else {
-    // If all class/shift filters are cleared, also clear the results table
-    setStudentStatuses([]);
-    setAttendance([]);
-  }
-}, [selectedDate, selectedClasses, selectedShifts, fetchAttendanceData]);
+  useEffect(() => {
+    if (selectedClasses.length > 0 || selectedShifts.length > 0) {
+      fetchAndProcessData();
+    } else {
+      setStudentStatuses([]);
+      setAttendance([]);
+      setPermissions([]);
+    }
+  }, [selectedDate, selectedClasses, selectedShifts, fetchAndProcessData]);
 
   return (
     <SectionMain>
-      <SectionTitleLineWithButton
-        icon={mdiMagnify}
-        title="Check Daily Attendance Status"
-        main
-      />
-
+      <SectionTitleLineWithButton icon={mdiMagnify} title="Check Daily Attendance Status" main />
+      
       <CardBox className="mb-6 px-4 pt-2 pb-4 rounded-lg shadow">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-4 items-start">
-                   <FormField label="Date" labelFor="checkDate">
-          {(fd) => (
-            <div className="flex items-center space-x-1">
-              <Button
-                icon={mdiChevronLeft}
-                onClick={() => handleDateArrowChange(-1)}
-                color="lightDark"
-                small
-                outline
-                aria-label="Previous Day"
-              />
-              <input
-                type="date"
-                id="checkDate"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className={`${fd.className} flex-grow`} // flex-grow makes the input take available space
-              />
-              <Button
-                icon={mdiChevronRight}
-                onClick={() => handleDateArrowChange(1)}
-                color="lightDark"
-                small
-                outline
-                aria-label="Next Day"
-              />
-            </div>
-          )}
-        </FormField>
+          <FormField label="Date" labelFor="checkDate">
+            {(fd) => (
+              <div className="flex items-center space-x-1">
+                <Button icon={mdiChevronLeft} onClick={() => handleDateArrowChange(-1)} color="lightDark" small outline />
+                <input type="date" id="checkDate" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className={`${fd.className} flex-grow`} />
+                <Button icon={mdiChevronRight} onClick={() => handleDateArrowChange(1)} color="lightDark" small outline />
+              </div>
+            )}
+          </FormField>
           <FormField label="Class" labelFor="checkClassMulti">
             {(fd) => (
               <CustomMultiSelectDropdown
@@ -372,11 +263,10 @@ useEffect(() => {
                 selectedValues={selectedClasses}
                 onChange={setSelectedClasses}
                 placeholder={loadingClasses ? "Loading classes..." : (availableClasses.length === 0 ? "No classes available" : "Select Class")}
-                fieldData={fd} // Allows FormField to pass its calculated className
+                fieldData={fd}
               />
             )}
           </FormField>
- 
           <FormField label="Shift" labelFor="checkShiftMulti">
             {(fd) => (
               <CustomMultiSelectDropdown
@@ -389,7 +279,6 @@ useEffect(() => {
               />
             )}
           </FormField>
-
           <FormField label="Student Name (Filter)" labelFor="checkName">
             {(fd) => <input type="text" id="checkName" placeholder="Search by name..." value={searchName} onChange={(e) => setSearchName(e.target.value)} className={fd.className}/>}
           </FormField>
@@ -400,42 +289,39 @@ useEffect(() => {
             color="info"
             icon={mdiMagnify}
             onClick={handleSearch}
-            disabled={loading || !selectedDate || (selectedClasses.length === 0 && selectedShifts.length === 0) } // Require date and at least one class or shift
+            disabled={loading || !selectedDate || (selectedClasses.length === 0 && selectedShifts.length === 0) }
           />
         </div>
       </CardBox>
-
-      {error && (
-        <NotificationBar color={error.startsWith("Query requires") ? "warning" : "danger"} icon={mdiClipboardListOutline} className="mb-4">
-          {error}
-        </NotificationBar>
-      )}
-
+      
+      {error && <NotificationBar color="danger" icon={mdiClipboardListOutline} className="mb-4">{error}</NotificationBar>}
+      
       <CardBox className="mb-6 rounded-lg shadow" hasTable>
         {loading ? (
           <p className="p-6 text-center">Loading student statuses...</p>
         ) : studentStatuses.length > 0 ? (
           <TableDailyStatus statuses={studentStatuses} onViewDetails={handleOpenDetailsModal}/>
-        ) : (selectedDate && (selectedClasses.length > 0 || selectedShifts.length > 0) && !error) ? ( // Only show "no records" if a search was actually made
+        ) : (selectedDate && (selectedClasses.length > 0 || selectedShifts.length > 0) && !error) ? (
              <NotificationBar color="info" icon={mdiMagnify}>
-                No students found for the selected criteria, or no attendance data to compare.
+                No students found for the selected criteria.
              </NotificationBar>
         ) : (
-           <NotificationBar color="info">Please select a date and at least one class or shift, then click Check Status.</NotificationBar>
+           <NotificationBar color="info">Please select a date and at least one class or shift to get a report.</NotificationBar>
         )}
       </CardBox>
-        {isDetailModalActive && studentForDetailModal && allClassConfigs && (
+
+      {isDetailModalActive && studentForDetailModal && allClassConfigs && (
         <DailyStatusDetailsModal
-          student={studentForDetailModal} // Uses studentForDetailModal
-          attendanceRecords={attendanceForDetailModal}
+          student={studentForDetailModal}
+          attendanceRecords={attendance.filter(att => att.studentId === studentForDetailModal.id)}
+          approvedPermissions={permissions.filter(p => p.studentId === studentForDetailModal.id)}
           allClassConfigs={allClassConfigs}
           isActive={isDetailModalActive}
           onClose={() => {
             setIsDetailModalActive(false);
             setStudentForDetailModal(null);
-            setAttendanceForDetailModal([]);
-        }}
-          initialMonthValue={selectedMonth} 
+          }}
+          initialMonthValue={getCurrentYearMonthString(new Date(selectedDate))}
         />
       )}
     </SectionMain>

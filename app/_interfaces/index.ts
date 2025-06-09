@@ -98,3 +98,10 @@ export interface PermissionRecord {
   reviewedBy?: string;
   reviewedAt?: Timestamp;
 }
+
+// Keep these interfaces here as they are specific to this component's view model
+export interface DailyStatusInfo {
+  date: string;
+  status?: "Present" | "Late" | "Absent" | "Permission" | "Not Applicable (Holiday/Weekend)" | "No School" |"Not Yet Enrolled" | "Pending" | "Unknown" | "Absent (Config Missing)";
+  time?: string;
+}

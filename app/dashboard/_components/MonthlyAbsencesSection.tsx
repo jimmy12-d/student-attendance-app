@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Student } from "../../_interfaces"; // Adjust path
+import { Student, PermissionRecord } from "../../_interfaces"; // Adjust path
 import { StudentAttendanceWarning } from "../page"; // Assuming defined in dashboard/page.tsx or move to _interfaces
 import SectionTitleLineWithButton from "../../_components/Section/TitleLineWithButton";
 import CardBoxAttendanceWarning from "./CardBoxAttendanceWarning"; // Assuming it's in the same _components folder
@@ -16,9 +16,10 @@ interface Props {
   selectedMonthValue: string; // e.g., "2025-06"
   selectedMonthLabel: string; // <--- NEW PROP (e.g., "June 2025")
   allClassConfigs: AllClassConfigs | null;
+  approvedPermissions: PermissionRecord[]; // Optional, if you need to pass permissions
 }
 
-const MonthlyAbsencesSection: React.FC<Props> = ({ students, attendanceRecords, selectedMonthValue, selectedMonthLabel, allClassConfigs }) => {
+const MonthlyAbsencesSection: React.FC<Props> = ({ students, attendanceRecords, selectedMonthValue, selectedMonthLabel, allClassConfigs, approvedPermissions }) => {
   const [monthlyAbsenceWarningList, setMonthlyAbsenceWarningList] = useState<StudentAttendanceWarning[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -36,7 +37,6 @@ const MonthlyAbsencesSection: React.FC<Props> = ({ students, attendanceRecords, 
     const monthIndex = parseInt(monthStr) - 1;
     const { monthStartDateString, monthEndDateStringUsedForQuery } = getMonthDetailsForLogic(year, monthIndex);
 
-
     students.forEach(student => {
       // Filter attendance for this specific student and for the selected month period
       const studentAttendanceInMonth = attendanceRecords.filter(
@@ -45,7 +45,8 @@ const MonthlyAbsencesSection: React.FC<Props> = ({ students, attendanceRecords, 
                att.date <= monthEndDateStringUsedForQuery
       );
 
-      const absenceData = calculateMonthlyAbsencesLogic(student, studentAttendanceInMonth, selectedMonthValue, allClassConfigs);
+      const studentPermissions = approvedPermissions.filter(p => p.studentId === student.id);
+      const absenceData = calculateMonthlyAbsencesLogic(student, studentAttendanceInMonth, selectedMonthValue, allClassConfigs, studentPermissions);
       
       if (absenceData.count >= 5) { // Your threshold
         warnings.push({
@@ -58,6 +59,8 @@ const MonthlyAbsencesSection: React.FC<Props> = ({ students, attendanceRecords, 
 
     setMonthlyAbsenceWarningList(warnings.sort((a,b) => b.value - a.value).slice(0,5));
     setIsLoading(false);
+
+    console.log("Monthly Absences Warnings:", approvedPermissions); // Debugging log to check the warnings generated
 
   }, [students, attendanceRecords, selectedMonthValue, selectedMonthLabel]);
 
@@ -86,6 +89,7 @@ const MonthlyAbsencesSection: React.FC<Props> = ({ students, attendanceRecords, 
                 key={`${studentWarning.id}-consecutive`}
                 warning={studentWarning}
                 student={studentObj}
+                approvedPermissions={approvedPermissions.filter(p => p.studentId === studentWarning.id)}
                 allClassConfigs={allClassConfigs}
                 allAttendanceRecordsForStudent={studentSpecificAttendance}
               />

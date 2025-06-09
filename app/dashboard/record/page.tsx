@@ -131,10 +131,10 @@ export default function AttendanceRecordPage() {
           <p>
             <b>{recordToDelete.studentName}</b> on{" "}
             <b>
-              {recordToDelete.date instanceof Date
-                ? recordToDelete.date.toLocaleDateString()
-                : recordToDelete.date && typeof (recordToDelete.date as Timestamp).toDate === "function"
-                ? (recordToDelete.date as Timestamp).toDate().toLocaleDateString()
+              {recordToDelete.date && typeof recordToDelete.date === "object" && (recordToDelete.date as object) instanceof Date
+                ? (recordToDelete.date as Date).toLocaleDateString()
+                : recordToDelete.date && typeof ((recordToDelete.date as unknown as Timestamp)?.toDate) === "function"
+                ? (recordToDelete.date as unknown as Timestamp).toDate().toLocaleDateString()
                 : String(recordToDelete.date)}
             </b>
             ?

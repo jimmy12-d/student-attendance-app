@@ -147,11 +147,12 @@ export default function DashboardPage() {
   const presentTodayCount = useMemo(() => attendance.filter(a => a.date === todayStrForWidgets && a.status === 'present').length, [attendance, todayStrForWidgets]);
   const lateTodayCount = useMemo(() => attendance.filter(a => a.date === todayStrForWidgets && a.status === 'late').length, [attendance, todayStrForWidgets]);
   
-  const absentTodayCount = useMemo(() => {
+    const absentTodayCount = useMemo(() => {
     if (!allClassConfigs || students.length === 0) return 0;
 
     const now = new Date(); // Current time to check against shift windows
-    const todayStr = todayStrForWidgets; // Use string "YYYY-MM-DD"
+    const todayStr = new Date(todayStrForWidgets); 
+    //const todayStr = getTodayDateString(); // Assuming you have a helper for "YYYY-MM-DD"
 
     return students.filter(student => {
       // Find this student's attendance record for today, if any
@@ -179,34 +180,64 @@ export default function DashboardPage() {
 
   }, [students, attendance, permissions, allClassConfigs, todayStrForWidgets]);
 
-    const pendingTodayCount = useMemo(() => {
-    if (!allClassConfigs || students.length === 0) return 0;
+  const pendingTodayCount = useMemo(() => {
+    if (!allClassConfigs || students.length === 0) return 0; // Ensure configs and students are loaded
 
-    const now = new Date(); // Current time to check against shift windows
-    const todayStr = todayStrForWidgets; // Use string "YYYY-MM-DD"
+    const now = new Date();
+    const todayDateObj = new Date();
+    todayDateObj.setHours(0, 0, 0, 0);
+    const todayDateStr = `<span class="math-inline">\{todayDateObj\.getFullYear\(\)\}\-</span>{String(todayDateObj.getMonth() + 1).padStart(2, '0')}-${String(todayDateObj.getDate()).padStart(2, '0')}`;
 
     return students.filter(student => {
-      const attendanceRecord = attendance.find(
-        att => att.studentId === student.id && att.date === todayStr
-      );
-      
-      const approvedPermissionsForStudent = permissions.filter(
-        p => p.studentId === student.id
-      );
+      const studentCreatedAt = student.createdAt instanceof Timestamp 
+                              ? student.createdAt.toDate() 
+                              : student.createdAt instanceof Date
+                              ? student.createdAt
+                              : null;
+      if (studentCreatedAt) studentCreatedAt.setHours(0,0,0,0);
 
-      const result = getStudentDailyStatus(
-        student,
-        todayStr,
-        attendanceRecord,
-        allClassConfigs,
-        approvedPermissionsForStudent
-      );
+      // Ignore if not a school day for this student's class or if student not yet enrolled
+      const studentClassKey = student.class;
+      const classConfigData = studentClassKey ? allClassConfigs[studentClassKey] : undefined;
+      const classStudyDays = classConfigData?.studyDays;
+      if (!isSchoolDay(todayDateObj, classStudyDays) || (studentCreatedAt && studentCreatedAt > todayDateObj)) {
+        return false;
+      }
 
-      // Count as pending only if the final status is "Pending"
-      return result.status === "Pending";
+      // Check if already attended today
+      const attendedToday = attendance.find(
+        att => att.studentId === student.id && 
+              att.date === todayDateStr &&
+              (att.status === 'present' || att.status === 'late')
+      );
+      if (attendedToday) {
+        return false; // Not pending if already attended
+      }
+
+      // Check if shift window is still open
+      const studentShiftKey = student.shift;
+      const shiftConfig = (studentClassKey && studentShiftKey && classConfigData?.shifts) 
+                          ? classConfigData.shifts[studentShiftKey] 
+                          : undefined;
+
+      if (shiftConfig && shiftConfig.startTime) {
+        const [startHour, startMinute] = shiftConfig.startTime.split(':').map(Number);
+        const shiftStartTimeForToday = new Date(todayDateObj);
+        shiftStartTimeForToday.setHours(startHour, startMinute);
+        
+        const onTimeDeadlineForToday = new Date(shiftStartTimeForToday);
+        onTimeDeadlineForToday.setMinutes(shiftStartTimeForToday.getMinutes());
+        
+        const lateCutOffForToday = new Date(onTimeDeadlineForToday);
+        lateCutOffForToday.setMinutes(onTimeDeadlineForToday.getMinutes() + LATE_WINDOW_DURATION_MINUTES); // From your config
+
+        if (now <= lateCutOffForToday) {
+          return true; // Shift window open and not attended = Pending
+        }
+      }
+      return false; // Shift window closed or no config = Not pending (would be absent if not attended)
     }).length;
-    
-  }, [students, attendance, permissions, allClassConfigs]);
+  }, [students, attendance, allClassConfigs]);
 
   const currentSelectedMonthLabel = useMemo(() => {
     return monthOptions.find(m => m.value === selectedMonth)?.label || selectedMonth;

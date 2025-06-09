@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Student } from "../../_interfaces";
+import { Student, PermissionRecord } from "../../_interfaces";
 // StudentAttendanceWarning might come from a shared interface file or configForAttendanceLogic
 import { AllClassConfigs } from "../_lib/configForAttendanceLogic"; 
 import { StudentAttendanceWarning } from "../_lib/configForAttendanceLogic";
@@ -17,9 +17,10 @@ interface Props {
   students: Student[];
   attendanceRecords: RawAttendanceRecord[]; // Raw attendance records (e.g., last 60-90 days)
   allClassConfigs: AllClassConfigs | null;
+  approvedPermissions: PermissionRecord[]; // Optional, if you need to pass permissions
 }
 
-const ConsecutiveAbsencesSection: React.FC<Props> = ({ students, attendanceRecords, allClassConfigs }) => {
+const ConsecutiveAbsencesSection: React.FC<Props> = ({ students, attendanceRecords, allClassConfigs,approvedPermissions }) => {
   const [consecutiveAbsenceWarningList, setConsecutiveAbsenceWarningList] = useState<StudentAttendanceWarning[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -35,7 +36,8 @@ const ConsecutiveAbsencesSection: React.FC<Props> = ({ students, attendanceRecor
     students.forEach(student => {
       // Pre-filter attendance for the current student to pass to the calculation function
       const studentAttendance = attendanceRecords.filter(att => att.studentId === student.id);
-      const result = calculateConsecutiveAbsences(student, studentAttendance, allClassConfigs, 14); // Check last 14 days
+      const studentPermissions = approvedPermissions.filter(p => p.studentId === student.id);
+      const result = calculateConsecutiveAbsences(student, studentAttendance, allClassConfigs, studentPermissions,14); // Check last 14 days
       
       if (result.count >= 2) {
         warnings.push({
@@ -74,6 +76,7 @@ const ConsecutiveAbsencesSection: React.FC<Props> = ({ students, attendanceRecor
                 warning={studentWarning}
                 student={studentObj}
                 allClassConfigs={allClassConfigs}
+                approvedPermissions={approvedPermissions.filter(p => p.studentId === studentWarning.id)}
                 allAttendanceRecordsForStudent={studentSpecificAttendance}
               />
             );

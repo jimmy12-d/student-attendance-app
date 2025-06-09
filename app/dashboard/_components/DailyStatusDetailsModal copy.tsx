@@ -8,7 +8,6 @@ import CardBoxModal from "../../_components/CardBox/Modal";
 import { isSchoolDay as checkIsSchoolDay, RawAttendanceRecord} from "../_lib/attendanceLogic";
 import {
   AllClassConfigs,
-  STANDARD_ON_TIME_GRACE_MINUTES,
   LATE_WINDOW_DURATION_MINUTES,
   getCurrentYearMonthString, // Assuming you moved this to config or utils
 } from "../_lib/configForAttendanceLogic"; // Or your utils path
@@ -18,7 +17,7 @@ import { mdiChevronLeft, mdiChevronRight } from "@mdi/js";
 
 interface DailyStatusInfo {
   date: string;
-  status?: "Present" | "Late" | "Absent" | "Not Applicable (Holiday/Weekend)" | "Not Yet Enrolled" | "Pending" | "Unknown" | "Absent (Config Missing)";
+  status?: "Present" | "Late" | "Absent" | "Permission" |"Not Applicable (Holiday/Weekend)" | "Not Yet Enrolled" | "Pending" | "Unknown" | "Absent (Config Missing)";
   time?: string;
 }
 
@@ -43,7 +42,7 @@ interface Props {
 
 const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-const DailyStatusDetailsModalChecking: React.FC<Props> = ({
+const DailyStatusDetailsModal: React.FC<Props> = ({
   student,
   attendanceRecords,
   allClassConfigs,
@@ -206,9 +205,8 @@ const DailyStatusDetailsModalChecking: React.FC<Props> = ({
                 const [startHour, startMinute] = currentShiftConfig.startTime.split(':').map(Number);
                 const shiftStartTimeForToday = new Date(todayForComparison);
                 shiftStartTimeForToday.setHours(startHour, startMinute,0,0);
-                const studentGrace = (student as Student).gracePeriodMinutes ?? STANDARD_ON_TIME_GRACE_MINUTES;
                 const onTimeDeadlineForToday = new Date(shiftStartTimeForToday);
-                onTimeDeadlineForToday.setMinutes(shiftStartTimeForToday.getMinutes() + studentGrace);
+                onTimeDeadlineForToday.setMinutes(shiftStartTimeForToday.getMinutes());
                 const lateCutOffForToday = new Date(onTimeDeadlineForToday);
                 lateCutOffForToday.setMinutes(onTimeDeadlineForToday.getMinutes() + LATE_WINDOW_DURATION_MINUTES);
                 const now = new Date();
@@ -248,10 +246,10 @@ const DailyStatusDetailsModalChecking: React.FC<Props> = ({
         return "bg-red-200 text-red-800";
         case "pending":
         return "bg-blue-100 text-blue-700 dark:bg-blue-200 dark:text-blue-00"; // Keep or adjust
-        case "absent (config missing)": // Note: status in DailyStatusInfo has this as one word.
-                                    // If your data might have "Absent (Config Missing)" string,
-                                  
-                                  
+        case "absent (config missing)": 
+        case "permission":
+        return "bg-purple-200 text-purple-800";
+                                                              
         return "bg-orange-100 text-orange-700 dark:bg-orange-600 dark:text-orange-50"; // Keep or adjust
         
         // For non-pill statuses or less emphasized ones:
@@ -472,4 +470,4 @@ const DailyStatusDetailsModalChecking: React.FC<Props> = ({
   );
 };
 
-export default DailyStatusDetailsModalChecking;
+export default DailyStatusDetailsModal;

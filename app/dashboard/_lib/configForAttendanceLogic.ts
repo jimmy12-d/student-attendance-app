@@ -1,6 +1,6 @@
 // app/dashboard/_lib/attendanceUtils.ts
 export const STANDARD_ON_TIME_GRACE_MINUTES = 15;
-export const LATE_WINDOW_DURATION_MINUTES = 90;
+export const LATE_WINDOW_DURATION_MINUTES = 60;
 
 export const cambodianHolidaysSet = new Set([
   "2025-01-01", "2025-01-07", "2025-03-08", "2025-05-01",

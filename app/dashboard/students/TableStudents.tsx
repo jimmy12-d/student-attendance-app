@@ -95,7 +95,7 @@ const TableStudents = ({ students, onEdit, onDelete }: Props) => {
             <StudentQRCode
               studentId={selectedStudentForQr.id}
               studentName={selectedStudentForQr.fullName}
-              size={200}
+              qrSize={200}
             />
           </div>
         )}
@@ -111,7 +111,7 @@ const TableStudents = ({ students, onEdit, onDelete }: Props) => {
           <StudentQRCode
             studentId={studentToDownload.id}
             studentName={studentToDownload.fullName}
-            size={300}
+            qrSize={300}
             logoSizePercentage={0.25}
             isForDownloadCapture={true} 
           />

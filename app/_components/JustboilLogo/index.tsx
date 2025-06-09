@@ -27,7 +27,7 @@ export default function RodwellLogo({
 
   return (
     <img
-      src="/admin-one-react-tailwind/rodwell_logo.png"
+      src="/rodwell_logo.png"
       alt="Rodwell Logo"
       className={imageClassName} // Apply Tailwind classes (potentially without w-12 h-12 if style is used)
       style={imageStyles}      // Apply inline styles for width and height if provided

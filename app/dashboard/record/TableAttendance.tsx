@@ -43,7 +43,7 @@ export interface AttendanceRecord {
   class?: string;
   shift?: string;
   status: string; // e.g., "present"
-  date: string | Date | Timestamp;   // Your primary date field (likely "YYYY-MM-DD" string)
+  date: string;   // Your primary date field (likely "YYYY-MM-DD" string)
   timestamp?: Timestamp | Date; // The exact time of marking
 }
 
@@ -53,11 +53,9 @@ type Props = {
   perPage?: number;
 };
 
-// Function to format the date as dd-mm-yyyy
 
 const TableAttendance = ({ records, onDeleteRecord, perPage = 10 }: Props) => {
   const [currentPage, setCurrentPage] = useState(0);
-
   const recordsPaginated = records.slice(
     perPage * currentPage,
     perPage * (currentPage + 1)

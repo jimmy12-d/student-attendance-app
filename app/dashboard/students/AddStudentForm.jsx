@@ -88,8 +88,6 @@ function AddStudentForm({ onStudentAdded, onCancel, initialData }) {
         }
         setAllClassData(fetchedClassConfigs);
         setClassOptions(dropdownOpts); // For the class selection dropdown
-        console.log("All class data loaded:", fetchedClassConfigs);
-        console.log("Class dropdown options:", dropdownOpts);
       } catch (error) {
         console.error("Error fetching classes: ", error);
         setError("Failed to load class list.");

@@ -5,7 +5,7 @@ import React, { useState } from "react";
 import CardBox from "../../_components/CardBox"; // Adjust path
 import PillTag from "../../_components/PillTag"; // Adjust path
 import { StudentAttendanceWarning } from "../page"; // Import from dashboard page
-import { Student } from "../../_interfaces"; // To pass student data to modal
+import { Student, PermissionRecord } from "../../_interfaces"; // To pass student data to modal
 import { AllClassConfigs } from "../_lib/configForAttendanceLogic"; // Import this
 import DailyStatusDetailsModal from "./DailyStatusDetailsModal"; // We will create this new component
 import { mdiEye } from "@mdi/js";
@@ -16,9 +16,10 @@ interface Props {
   student: Student; // Pass the full student object
   allAttendanceRecordsForStudent: RawAttendanceRecord[]; // Pass attendance specific to this student
   allClassConfigs: AllClassConfigs | null;
+  approvedPermissions: PermissionRecord[];
 }
 
-const CardBoxAttendanceWarning: React.FC<Props> = ({ warning, student, allAttendanceRecordsForStudent, allClassConfigs }) => {
+const CardBoxAttendanceWarning: React.FC<Props> = ({ warning, student, allAttendanceRecordsForStudent, allClassConfigs, approvedPermissions }) => {
   const [isDetailModalActive, setIsDetailModalActive] = useState(false);
 
   const getPillColor = () => {
@@ -69,6 +70,7 @@ className="p-1 rounded-full transition-all duration-200 ease-in-out text-red-600
         <DailyStatusDetailsModal
           student={student}
           attendanceRecords={allAttendanceRecordsForStudent}
+          approvedPermissions={approvedPermissions}
           allClassConfigs={allClassConfigs}
           isActive={isDetailModalActive}
           onClose={() => setIsDetailModalActive(false)}

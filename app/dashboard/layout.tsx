@@ -49,11 +49,9 @@ export default function LayoutAuthenticated({ children }: Props) {
 
   // --- NEW useEffect for Firebase Auth State Changes ---
   useEffect(() => {
-    console.log("Dashboard Layout: useEffect for onAuthStateChanged mounted.");
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         // User is signed in
-        console.log("Dashboard Layout: User is signed in - UID:", user.uid);
         dispatch(
           setUser({ // Dispatch to Redux
             name: user.displayName,
@@ -65,12 +63,10 @@ export default function LayoutAuthenticated({ children }: Props) {
         setIsAuthenticated(true);
       } else {
         // User is signed out
-        console.log("Dashboard Layout: User is signed out.");
         dispatch(setUser(null)); // Clear user in Redux
         setIsAuthenticated(false);
         // Only redirect if actually on a dashboard page and not already going to login
         if (pathname.startsWith('/dashboard')) {
-          console.log("Dashboard Layout: Redirecting to /login from", pathname);
           router.replace("/login"); // Use replace to prevent back button to protected route
         }
       }
@@ -79,7 +75,6 @@ export default function LayoutAuthenticated({ children }: Props) {
 
     // Cleanup subscription on unmount
     return () => {
-      console.log("Dashboard Layout: Unsubscribing from onAuthStateChanged.");
       unsubscribe();
     };
   }, [dispatch, router, pathname]); // Dependencies for the effect
@@ -104,7 +99,6 @@ export default function LayoutAuthenticated({ children }: Props) {
   // router.replace in useEffect should have already triggered.
   // This return null is a safeguard or for the brief moment before redirect fully happens.
   if (!isAuthenticated && pathname.startsWith('/dashboard')) {
-    console.log("Dashboard Layout: Not authenticated but on dashboard path - rendering null (should be redirecting).");
     return null; 
   }
   // --- END OF NOT AUTHENTICATED HANDLING ---
@@ -136,24 +130,6 @@ export default function LayoutAuthenticated({ children }: Props) {
               onClick={() => setIsAsideLgActive(true)}
             >
               <Icon path={mdiMenu} size="24" />
-            </NavBarItemPlain>
-            <NavBarItemPlain useMargin>
-              <Formik
-                initialValues={{ search: "" }}
-                onSubmit={(values) => alert(JSON.stringify(values, null, 2))}
-              >
-                <Form>
-                  <FormField isBorderless isTransparent>
-                    {({ className }) => (
-                      <Field
-                        name="search"
-                        placeholder="Search"
-                        className={className}
-                      />
-                    )}
-                  </FormField>
-                </Form>
-              </Formik>
             </NavBarItemPlain>
           </NavBar>
           <AsideMenu
