@@ -254,22 +254,35 @@ const AttendanceScanner: React.FC = () => {
       
     }, []); 
 
-  const initializeScanner = useCallback(async () => { // Make it async
-    if (!videoContainerRef.current) {
-      showFeedback('error', 'Video container element not found.');
-      setIsScanning(false); // Ensure state is correct
+const initializeScanner = useCallback(async () => {
+  if (!videoContainerRef.current) {
+    showFeedback('error', 'Video container element not found.');
+    setIsScanning(false);
+    return;
+  }
+
+  // Clear container
+  videoContainerRef.current.innerHTML = '';
+  console.log("initializeScanner: Initializing new scanner instance.");
+
+  try {
+    // First, check if we can get cameras (this requests permissions)
+    const cameras = await Html5Qrcode.getCameras();
+    console.log("Available cameras:", cameras);
+    
+    if (!cameras || cameras.length === 0) {
+      showFeedback('error', 'No cameras found or permission denied.');
+      setIsScanning(false);
       return;
     }
-    // Ensure container is empty before new instance renders into it
-    videoContainerRef.current.innerHTML = '';
-    console.log("initializeScanner: Initializing new scanner instance.");
 
-    const newHtml5QrCodeInstance = new Html5Qrcode(VIDEO_ELEMENT_CONTAINER_ID, { verbose: false });
-    // Temporarily set ref to allow guard checks in async operations,
-    // but it's only "truly" set after successful start.
-    // This is a bit tricky. Let's assign to ref now, but clear on failure.
-    html5QrCodeRef.current = newHtml5QrCodeInstance;
+    // Check if scanning was cancelled while getting cameras
+    if (!isScanning) {
+      console.log("Scanner start aborted: scanning was stopped.");
+      return;
+    }
 
+    const newHtml5QrCodeInstance = new Html5Qrcode(VIDEO_ELEMENT_CONTAINER_ID, { verbose: true }); // Enable verbose for debugging
 
     const qrCodeScanConfiguration: Html5QrcodeCameraScanConfig = {
       fps: 10,
@@ -280,20 +293,54 @@ const AttendanceScanner: React.FC = () => {
       },
     };
 
-    try {
-            const cameras = await Html5Qrcode.getCameras();
-
-    } catch (err) {
-      console.error("Error during scanner initialization or start process:", err);
-      showFeedback('error', `Camera Error: ${(err as Error).message}`);
-      setIsScanning(false);
-      // If this specific instance was set to the ref and failed, clear it
-      if (html5QrCodeRef.current === newHtml5QrCodeInstance) {
-        html5QrCodeRef.current = null;
-      }
+    // Choose camera
+    let cameraId = cameras[0].id;
+    const backCamera = cameras.find(c => 
+      c.label && (
+        c.label.toLowerCase().includes('back') || 
+        c.label.toLowerCase().includes('rear') ||
+        c.label.toLowerCase().includes('environment')
+      )
+    );
+    if (backCamera) {
+      cameraId = backCamera.id;
+      console.log("Using back camera:", backCamera.label);
+    } else {
+      console.log("Using default camera:", cameras[0].label);
     }
-  // Add dependencies for initializeScanner's own useCallback
-  }, [isScanning, onScanSuccess, onScanFailure, showFeedback]); 
+
+    console.log("Starting scanner with camera ID:", cameraId);
+    
+    await newHtml5QrCodeInstance.start(
+      cameraId, 
+      qrCodeScanConfiguration, 
+      onScanSuccess, 
+      onScanFailure
+    );
+    
+    console.log("Scanner started successfully");
+    html5QrCodeRef.current = newHtml5QrCodeInstance;
+    
+  } catch (err) {
+    console.error("Detailed error during scanner initialization:", err);
+    
+    // More specific error handling
+    if (err.message?.includes('Permission')) {
+      showFeedback('error', 'Camera permission denied. Please allow camera access.');
+    } else if (err.message?.includes('NotFound')) {
+      showFeedback('error', 'No camera found.');
+    } else if (err.message?.includes('NotAllowed')) {
+      showFeedback('error', 'Camera access not allowed.');
+    } else if (err.message?.includes('NotReadable')) {
+      showFeedback('error', 'Camera is being used by another application.');
+    } else {
+      showFeedback('error', `Camera Error: ${err.message}`);
+    }
+    
+    setIsScanning(false);
+    html5QrCodeRef.current = null;
+  }
+}, [isScanning, onScanSuccess, onScanFailure, showFeedback]);
   // Effect to Start and Stop the scanner
 useEffect(() => {
     if (isScanning) {
