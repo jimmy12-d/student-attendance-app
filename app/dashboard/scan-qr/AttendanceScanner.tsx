@@ -261,12 +261,10 @@ const initializeScanner = useCallback(async () => {
     return;
   }
 
-  // Clear container
   videoContainerRef.current.innerHTML = '';
   console.log("initializeScanner: Initializing new scanner instance.");
 
   try {
-    // First, check if we can get cameras (this requests permissions)
     const cameras = await Html5Qrcode.getCameras();
     console.log("Available cameras:", cameras);
     
@@ -276,13 +274,12 @@ const initializeScanner = useCallback(async () => {
       return;
     }
 
-    // Check if scanning was cancelled while getting cameras
     if (!isScanning) {
       console.log("Scanner start aborted: scanning was stopped.");
       return;
     }
 
-    const newHtml5QrCodeInstance = new Html5Qrcode(VIDEO_ELEMENT_CONTAINER_ID, { verbose: true }); // Enable verbose for debugging
+    const newHtml5QrCodeInstance = new Html5Qrcode(VIDEO_ELEMENT_CONTAINER_ID, { verbose: true });
 
     const qrCodeScanConfiguration: Html5QrcodeCameraScanConfig = {
       fps: 10,
@@ -293,20 +290,45 @@ const initializeScanner = useCallback(async () => {
       },
     };
 
-    // Choose camera
+    // Detect if device is iOS (iPhone/iPad)
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
     let cameraId = cameras[0].id;
-    const backCamera = cameras.find(c => 
-      c.label && (
-        c.label.toLowerCase().includes('back') || 
-        c.label.toLowerCase().includes('rear') ||
-        c.label.toLowerCase().includes('environment')
-      )
-    );
-    if (backCamera) {
-      cameraId = backCamera.id;
-      console.log("Using back camera:", backCamera.label);
+    
+    if (isIOS || isMobile) {
+      // For iOS and mobile devices, prefer front camera
+      const frontCamera = cameras.find(c => 
+        c.label && (
+          c.label.toLowerCase().includes('front') || 
+          c.label.toLowerCase().includes('user') ||
+          c.label.toLowerCase().includes('facing user') ||
+          c.label.toLowerCase().includes('selfie')
+        )
+      );
+      
+      if (frontCamera) {
+        cameraId = frontCamera.id;
+        console.log("Using front camera for mobile device:", frontCamera.label);
+      } else {
+        console.log("Front camera not found, using default:", cameras[0].label);
+      }
     } else {
-      console.log("Using default camera:", cameras[0].label);
+      // For desktop, prefer back camera
+      const backCamera = cameras.find(c => 
+        c.label && (
+          c.label.toLowerCase().includes('back') || 
+          c.label.toLowerCase().includes('rear') ||
+          c.label.toLowerCase().includes('environment')
+        )
+      );
+      
+      if (backCamera) {
+        cameraId = backCamera.id;
+        console.log("Using back camera for desktop:", backCamera.label);
+      } else {
+        console.log("Back camera not found, using default:", cameras[0].label);
+      }
     }
 
     console.log("Starting scanner with camera ID:", cameraId);
@@ -324,7 +346,6 @@ const initializeScanner = useCallback(async () => {
   } catch (err) {
     console.error("Detailed error during scanner initialization:", err);
     
-    // More specific error handling
     if (err.message?.includes('Permission')) {
       showFeedback('error', 'Camera permission denied. Please allow camera access.');
     } else if (err.message?.includes('NotFound')) {
