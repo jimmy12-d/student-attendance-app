@@ -281,29 +281,8 @@ const AttendanceScanner: React.FC = () => {
     };
 
     try {
-      const cameras = await Html5Qrcode.getCameras();
-      // Crucial check: If isScanning became false OR if the ref changed (e.g. stop was called)
-      // while getCameras was running, then abort.
-      if (!isScanning || html5QrCodeRef.current !== newHtml5QrCodeInstance) {
-        console.log("Scanner start aborted: isScanning changed or ref mismatch during getCameras.");
-        if (html5QrCodeRef.current === newHtml5QrCodeInstance) html5QrCodeRef.current = null; // Clear our ref if we set it
-        // The newHtml5QrCodeInstance here was created but never started, so no need to call .stop() on it.
-        return;
-      }
+            const cameras = await Html5Qrcode.getCameras();
 
-      if (cameras && cameras.length) {
-        let cameraId = cameras[0].id;
-        const backCamera = cameras.find(c => c.label && c.label.toLowerCase().includes('back'));
-        if (backCamera) cameraId = backCamera.id;
-
-        await newHtml5QrCodeInstance.start(cameraId, qrCodeScanConfiguration, onScanSuccess, onScanFailure);
-        console.log("Scanner started successfully by initializeScanner.");
-        // isScanning is already true. html5QrCodeRef.current is already set to newHtml5QrCodeInstance.
-      } else {
-        showFeedback('error', 'No cameras found.');
-        setIsScanning(false);
-        html5QrCodeRef.current = null; // Clear ref
-      }
     } catch (err) {
       console.error("Error during scanner initialization or start process:", err);
       showFeedback('error', `Camera Error: ${(err as Error).message}`);

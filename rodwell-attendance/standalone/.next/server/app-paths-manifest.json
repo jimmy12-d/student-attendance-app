@@ -1,0 +1,14 @@
+{
+  "/_not-found/page": "app/_not-found/page.js",
+  "/page": "app/page.js",
+  "/request-permission/page": "app/request-permission/page.js",
+  "/login/page": "app/login/page.js",
+  "/dashboard/page": "app/dashboard/page.js",
+  "/dashboard/record/page": "app/dashboard/record/page.js",
+  "/dashboard/students/page": "app/dashboard/students/page.js",
+  "/dashboard/permission/page": "app/dashboard/permission/page.js",
+  "/dashboard/check/page": "app/dashboard/check/page.js",
+  "/dashboard/manage-excuses/page": "app/dashboard/manage-excuses/page.js",
+  "/dashboard/scan-qr/page": "app/dashboard/scan-qr/page.js",
+  "/dashboard/ui/page": "app/dashboard/ui/page.js"
+}
