@@ -1,0 +1,9 @@
+---
+deployment:
+  tasks:
+    - export HOME=/home/rodkov5
+    - export DEPLOYPATH=/home/rodkov5/public_html/attendance.rodwell.center/
+    - /opt/cpanel/ea-nodejs18/bin/npm install --ignore-scripts
+    - /opt/cpanel/ea-nodejs18/bin/npm run build
+    - /bin/cp -R .next/static $DEPLOYPATH/.next/static
+    - /bin/cp -R public $DEPLOYPATH/public
